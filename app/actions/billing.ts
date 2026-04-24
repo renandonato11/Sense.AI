@@ -1,6 +1,6 @@
 "use server"
 
-import { createClient } from '../../utils/supabase/server'
+import { createClient } from '@/utils/supabase/server'
 import Stripe from 'stripe'
 
 // Inicializa o Stripe com a Secret Key (pegue no painel do Stripe)

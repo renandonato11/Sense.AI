@@ -1,6 +1,6 @@
 "use server"
 
-import { createClient } from '../../utils/supabase/server' 
+import { createClient } from '@/utils/supabase/server' 
 import { nanoid } from 'nanoid' 
 
 export async function createStore(formData: { name: string; domain: string }) {
