@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Sense.Ai - Loja de Testes</title>
+    <!-- Importamos o seu SDK compilado -->
+    <script src="apps/sdk/index.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f4f4f9; }
+        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 8px; transition: 0.3s; }
+        button:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>🛒 Minha Loja Teste</h1>
+        <p>Simule o comportamento de um cliente</p>
+        <br>
+        <!-- Botão que o SDK monitora -->
+        <button id="calculate-shipping">Calcular Frete</button>
+        <p style="margin-top: 20px; color: #666; font-size: 12px;">Dica: Clique no botão e depois tire o mouse da aba!</p>
+    </div>
+
+    <script>
+        // Inicializa o SDK com os seus dados REAIS do banco
+        window.onload = () => {
+            console.log("🚀 Iniciando Sense.Ai...");
+            const sense = new SenseAi('3f5e37a5-dedc-4039-acdf-b3652787d2e6', 'sk_test_123');
+        };
+    </script>
+</body>
+</html>
