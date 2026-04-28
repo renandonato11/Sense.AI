@@ -6,7 +6,7 @@ import Stripe from 'stripe'
 // Inicializa o Stripe com a Secret Key (pegue no painel do Stripe)
 // A chave deve estar no seu arquivo .env.local como SUPABASE_SERVICE_ROLE_KEY ou STRIPE_SECRET_KEY
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2026-04-22.dahlia' as any,
 })
 
 export async function createCheckoutSession(priceId: string) {
