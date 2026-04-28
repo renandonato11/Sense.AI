@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Sense.Ai SDK</title>
+</head>
+<body>
+    <h1>Simulador de Loja Sense.Ai</h1>
+    <button onclick="sendSignal('shipping_doubt')">Simular Dúvida de Frete</button>
+    <button onclick="sendSignal('cart_abandonment')">Simular Abandono de Carrinho</button>
+
+    <script>
+        async function sendSignal(type) {
+            const API_URL = 'https://SEU-DOMINIO-NA-VERCEL.vercel.app/api/collect'; 
+            const API_KEY = 'sa_live_test_123'; // Aquela chave que está no seu banco
+
+            console.log(`Enviando sinal de ${type}...`);
+            
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    api_key: API_KEY,
+                    event_type: type,
+                    payload: { url: window.location.href, timestamp: new Date() }
+                })
+            });
+
+            const data = await response.json();
+            alert(data.success ? 'Sinal enviado com sucesso!' : 'Erro: ' + data.error);
+        }
+    </script>
+</body>
+</html>
