@@ -1,18 +1,38 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
+// Função para lidar com a requisição de "pré-vôo" (Preflight) do navegador
+export async function OPTIONS() {
+  return NextResponse.json(
+    {}, 
+    {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    }
+  )
+}
+
 export async function POST(req: Request) {
   try {
+    // Adiciona os headers de CORS na resposta do POST
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    }
+
     const body = await req.json()
     const { api_key, event_type, payload } = body
 
     if (!api_key) {
-      return NextResponse.json({ error: 'API Key is missing' }, { status: 400 })
+      return NextResponse.json({ error: 'API Key is missing' }, { status: 400, headers: corsHeaders })
     }
 
     const supabase = await createClient()
 
-    // 1. Verificar se a loja existe com essa API Key
     const { data: store, error: storeError } = await supabase
       .from('stores')
       .select('id')
@@ -20,10 +40,9 @@ export async function POST(req: Request) {
       .single()
 
     if (storeError || !store) {
-      return NextResponse.json({ error: 'Invalid API Key' }, { status: 403 })
+      return NextResponse.json({ error: 'Invalid API Key' }, { status: 403, headers: corsHeaders })
     }
 
-    // 2. Salvar o evento no banco de dados
     const { error: eventError } = await supabase
       .from('events')
       .insert({
@@ -32,14 +51,12 @@ export async function POST(req: Request) {
         payload
       })
 
-    if (eventError) {
-      throw eventError
-    }
+    if (eventError) throw eventError
 
-    return NextResponse.json({ success: true, message: 'Sinal capturado!' }, { status: 200 })
+    return NextResponse.json({ success: true, message: 'Sinal capturado!' }, { status: 200, headers: corsHeaders })
 
   } catch (error: any) {
     console.error('Erro na coleta:', error)
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } })
   }
 }
