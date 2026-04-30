@@ -1,32 +1,49 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <title>Teste Sense.Ai SDK</title>
+    <meta charset="UTF-8">
+    <title>Teste Final Sense.Ai</title>
+    <style>body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 50px; }</style>
 </head>
 <body>
-    <h1>Simulador de Loja Sense.Ai</h1>
+    <h1>Simulador Sense.Ai</h1>
     <button onclick="sendSignal('shipping_doubt')">Simular Dúvida de Frete</button>
     <button onclick="sendSignal('cart_abandonment')">Simular Abandono de Carrinho</button>
+    <div id="log" style="white-space: pre-wrap; background: #eee; padding: 10px; border-radius: 5px; width: 80%; font-family: monospace;">Aguardando cliques...</div>
 
     <script>
         async function sendSignal(type) {
-            const API_URL = 'https://sense-ai-xb5a-mci1c3yb7-sense-ai.vercel.app/api/collect'; 
-            const API_KEY = 'sa_live_test_123'; // Aquela chave que está no seu banco
+            // ⚠️ ATENÇÃO: USE A URL CURTA DE PRODUÇÃO AQUI!
+            const API_URL = 'https://sense-ai.vercel.app/api/collect'; 
+            const API_KEY = 'sa_live_test_123';
 
-            console.log(`Enviando sinal de ${type}...`);
-            
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    api_key: API_KEY,
-                    event_type: type,
-                    payload: { url: window.location.href, timestamp: new Date() }
-                })
-            });
+            const logDiv = document.getElementById('log');
+            logDiv.innerText = `Enviando ${type}...`;
 
-            const data = await response.json();
-            alert(data.success ? 'Sinal enviado com sucesso!' : 'Erro: ' + data.error);
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        api_key: API_KEY,
+                        event_type: type,
+                        payload: { url: window.location.href }
+                    })
+                });
+
+                const text = await response.text(); // Pega a resposta como texto primeiro
+                console.log("Resposta do servidor:", text);
+
+                if (response.ok) {
+                    logDiv.innerText = "✅ SUCESSO: Sinal capturado!";
+                    alert("Sinal enviado com sucesso!");
+                } else {
+                    logDiv.innerText = `❌ ERRO ${response.status}: ${text}`;
+                }
+            } catch (err) {
+                logDiv.innerText = `💥 ERRO CRÍTICO: ${err.message}`;
+                console.error(err);
+            }
         }
     </script>
 </body>
