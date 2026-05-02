@@ -32,3 +32,6 @@ export default async function DashboardPage() {
     </div>
   )
 }
+<p style={{ color: 'red', fontWeight: 'bold' }}>
+  Erro do Servidor: {metrics.error || 'Nenhum erro detectado'}
+</p>
