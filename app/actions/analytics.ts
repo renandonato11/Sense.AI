@@ -7,12 +7,11 @@ export async function getStoreMetrics() {
   
   // ==========================================================================
   // MODO DEVELOPER: Bypass de Autenticação
-  // Usamos o mesmo ID que você usou para criar a loja no onboarding
   // ==========================================================================
   const userId = "27e64eb9-4b0b-4ffc-904a-5cec7099b0c7" 
   // ==========================================================================
 
-  // 1. Buscar a loja usando o ID fixo (em vez de buscar o usuário logado)
+  // 1. Buscar a loja usando o ID fixo
   const { data: store } = await supabase
     .from('stores')
     .select('id')
@@ -24,19 +23,19 @@ export async function getStoreMetrics() {
     throw new Error("Loja não encontrada. Certifique-se de ter feito o onboarding.")
   }
 
-  // 2. Total de eventos capturados
+  // 2. Total de eventos capturados (CORRIGIDO: de 'behavioral_events' para 'events')
   const { count: eventCount } = await supabase
-    .from('behavioral_events')
+    .from('events') // <--- Agora apontando para a tabela correta!
     .select('*', { count: 'exact', head: true })
     .eq('store_id', store.id)
 
-  // 3. Total de diagnósticos da IA
+  // 3. Total de diagnósticos da IA (Pode ser 0 por enquanto)
   const { count: diagCount } = await supabase
     .from('diagnostics')
     .select('*', { count: 'exact', head: true })
     .eq('store_id', store.id)
 
-  // 4. Distribuição de intenções
+  // 4. Distribuição de intenções (IA)
   const { data: distribution } = await supabase
     .from('diagnostics')
     .select('intent')
@@ -51,22 +50,20 @@ export async function getStoreMetrics() {
     name,
     value
   }))
-  // ... (resto do código acima)
 
+  // Cálculos de Receita e Taxas
   const recoveredSales = diagCount || 0
   const estimatedRevenue = recoveredSales * 150 
 
-  // CORREÇÃO DO NaN%: Se não houver distribuição, a taxa é 0
   const shippingRate = distribution && distribution.length > 0 
     ? (distribution.filter(d => d.intent === 'shipping').length / distribution.length) * 100 
     : 0;
 
   return {
-    totalEvents: eventCount || 0,
+    totalEvents: eventCount || 0, // Esse número agora vai subir!
     totalDiagnostics: diagCount || 0,
     chartData,
     estimatedRevenue,
-    shippingRate: shippingRate // Agora retorna número puro, o .toFixed(1) fica no frontend
+    shippingRate: shippingRate 
   }
 }
-  
