@@ -77,3 +77,21 @@ export async function getStoreMetrics() {
     }
   }
 }
+// ... dentro da função getStoreMetrics, logo após calcular a shippingRate ...
+
+// 5. Buscar os últimos diagnósticos para a tabela
+const { data: recentDiagnostics } = await supabase
+  .from('diagnostics')
+  .select('id, intent, confidence, created_at')
+  .eq('store_id', store.id)
+  .order('created_at', { ascending: false })
+  .limit(10)
+
+return {
+  totalEvents: totalEvents,
+  totalDiagnostics: totalDiagnostics,
+  chartData,
+  estimatedRevenue,
+  shippingRate: shippingRate,
+  recentDiagnostics: recentDiagnostics || [] // <--- Adicionamos isso aqui!
+}
