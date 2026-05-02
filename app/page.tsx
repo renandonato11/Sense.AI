@@ -11,12 +11,11 @@ export default async function DashboardPage() {
   // Isso garante que seus gráficos e cards funcionem sem mudar o componente visual
   return (
     <MetricsView 
-      totalInterventions={metrics.totalDiagnostics} 
-      shippingRate={metrics.shippingRate.toFixed(1)} 
-      recoveredRevenue={metrics.estimatedRevenue}
-      chartData={metrics.chartData}
-      // Passamos um array vazio ou buscamos os diagnósticos se quiser a tabela
-      allDiagnostics={[]} 
-    />
+  totalInterventions={metrics.totalEvents} // <--- Aqui estão os seus "7" sinais!
+  shippingRate={metrics.shippingRate.toFixed(1)} 
+  recoveredRevenue={metrics.estimatedRevenue}
+  chartData={metrics.chartData}
+  allDiagnostics={[]} 
+/>
   );
 }
