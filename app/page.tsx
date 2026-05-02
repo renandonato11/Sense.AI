@@ -1,23 +1,34 @@
-export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Isso mata qualquer cache de segundos
-
 import { getStoreMetrics } from './actions/analytics'
-import MetricsView from "@/components/metrics-view" // Mantemos seu componente visual
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function DashboardPage() {
-  // 1. Buscamos os dados reais e processados da nossa Action Enterprise
+  // 1. Buscamos os dados
   const metrics = await getStoreMetrics()
 
-  // 2. Mapeamos os dados da Action para o formato que o MetricsView espera
-  // Isso garante que seus gráficos e cards funcionem sem mudar o componente visual
   return (
-    <MetricsView 
-  totalInterventions={metrics.totalEvents} 
-  shippingRate={metrics.shippingRate.toFixed(1)} 
-  recoveredRevenue={metrics.estimatedRevenue}
-  chartData={metrics.chartData}
-  allDiagnostics={metrics.recentDiagnostics} // <--- Agora passamos os dados reais!
-/>
+    <div style={{ padding: '40px', fontFamily: 'monospace', backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
+      <h1 style={{ color: 'red', fontSize: '32px' }}>🛠️ MODO DEBUG: VERDADE DOS DADOS</h1>
+      
+      <div style={{ background: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxWidth: '600px' }}>
+        <p style={{ fontSize: '20px' }}><strong>Sinais no Banco:</strong> {metrics.totalEvents}</p>
+        <p style={{ fontSize: '20px' }}><strong>Diagnósticos da IA:</strong> {metrics.totalDiagnostics}</p>
+        <p style={{ fontSize: '20px' }}><strong>Receita Estimada:</strong> R$ {metrics.estimatedRevenue}</p>
+        <p style={{ fontSize: '20px' }}><strong>Taxa de Frete:</strong> {metrics.shippingRate}%</p>
+        
+        <hr style={{ margin: '20px 0' }} />
+        
+        <h3>Últimos Diagnósticos (Raw):</h3>
+        <pre style={{ background: '#eee', padding: '10px', overflow: 'auto' }}>
+          {JSON.stringify(metrics.recentDiagnostics, null, 2)}
+        </pre>
+      </div>
 
+      <p style={{ marginTop: '20px', color: '#666' }}>
+        Se os números acima forem 0, o problema está no <b>analytics.ts</b> ou na <b>conexão com o Supabase</b>.<br/>
+        Se os números acima estiverem CORRETOS, o problema está no componente <b>MetricsView</b>.
+      </p>
+    </div>
+  )
+}
