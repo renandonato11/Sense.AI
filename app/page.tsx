@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Isso mata qualquer cache de segundos
+
 import { getStoreMetrics } from './actions/analytics'
 import MetricsView from "@/components/metrics-view" // Mantemos seu componente visual
 

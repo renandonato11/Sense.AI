@@ -4,12 +4,9 @@ import { createClient } from '@/utils/supabase/server'
 
 export async function getStoreMetrics() {
   const supabase = await createClient()
-  
-  // MODO DEVELOPER: Bypass de Autenticação
   const userId = "27e64eb9-4b0b-4ffc-904a-5cec7099b0c7" 
 
   try {
-    // 1. Buscar a loja
     const { data: store } = await supabase
       .from('stores')
       .select('id')
@@ -18,31 +15,28 @@ export async function getStoreMetrics() {
 
     if (!store) throw new Error("Loja não encontrada")
 
-    // 2. Total de eventos (MÉTODO INFALÍVEL: Buscar IDs e contar o tamanho do array)
-    const { data: eventsData, error: eventsError } = await supabase
+    // 1. Eventos Brutos
+    const { data: eventsData } = await supabase
       .from('events')
       .select('id') 
       .eq('store_id', store.id)
-
-    if (eventsError) console.error("Erro eventos:", eventsError)
     const totalEvents = eventsData ? eventsData.length : 0
 
-    // 3. Total de diagnósticos (IA)
-    const { data: diagData } = await supabase
+    // 2. Diagnósticos da IA (Trazemos TUDO para não ter erro de contagem)
+    const { data: diagData, error: diagError } = await supabase
       .from('diagnostics')
-      .select('id')
+      .select('*') 
       .eq('store_id', store.id)
-    
-    const totalDiagnostics = diagData ? diagData.length : 0
+      .order('created_at', { ascending: false })
 
-    // 4. Distribuição de intenções
-    const { data: distribution } = await supabase
-      .from('diagnostics')
-      .select('intent')
-      .eq('store_id', store.id)
+    if (diagError) console.error("Erro diagnósticos:", diagError)
+    const diagnostics = diagData || []
+    const totalDiagnostics = diagnostics.length
 
-    const counts = distribution?.reduce((acc: any, curr) => {
-      acc[curr.intent] = (acc[curr.intent] || 0) + 1
+    // 3. Distribuição de Intenções
+    const counts = diagnostics.reduce((acc: any, curr) => {
+      const intent = curr.intent || 'unknown'
+      acc[intent] = (acc[intent] || 0) + 1
       return acc
     }, {}) || {}
 
@@ -51,47 +45,25 @@ export async function getStoreMetrics() {
       value
     }))
 
-    // CÁLCULOS DE VALOR (Agora baseados nos eventos para você ver o resultado!)
-    // Cada evento capturado gera uma estimativa de receita recuperável
-    const estimatedRevenue = totalEvents * 150 
+    // 4. Taxa de Frete (Cálculo Real)
+    const shippingCount = diagnostics.filter(d => d.intent === 'shipping').length
+    const shippingRate = totalDiagnostics > 0 
+      ? (shippingCount / totalDiagnostics) * 100 
+      : 0
 
-    const shippingRate = distribution && distribution.length > 0 
-      ? (distribution.filter(d => d.intent === 'shipping').length / distribution.length) * 100 
-      : 0;
+    // 5. Receita Estimada
+    const estimatedRevenue = totalDiagnostics * 150 
 
     return {
-      totalEvents: totalEvents,
-      totalDiagnostics: totalDiagnostics,
+      totalEvents,
+      totalDiagnostics,
       chartData,
       estimatedRevenue,
-      shippingRate: shippingRate 
+      shippingRate,
+      recentDiagnostics: diagnostics.slice(0, 10) // Últimos 10
     }
   } catch (error: any) {
-    console.error("Erro geral analytics:", error.message)
-    return {
-      totalEvents: 0,
-      totalDiagnostics: 0,
-      chartData: [],
-      estimatedRevenue: 0,
-      shippingRate: 0
-    }
+    console.error("Erro analytics:", error.message)
+    return { totalEvents: 0, totalDiagnostics: 0, chartData: [], estimatedRevenue: 0, shippingRate: 0, recentDiagnostics: [] }
   }
-}
-// ... dentro da função getStoreMetrics, logo após calcular a shippingRate ...
-
-// 5. Buscar os últimos diagnósticos para a tabela
-const { data: recentDiagnostics } = await supabase
-  .from('diagnostics')
-  .select('id, intent, confidence, created_at')
-  .eq('store_id', store.id)
-  .order('created_at', { ascending: false })
-  .limit(10)
-
-return {
-  totalEvents: totalEvents,
-  totalDiagnostics: totalDiagnostics,
-  chartData,
-  estimatedRevenue,
-  shippingRate: shippingRate,
-  recentDiagnostics: recentDiagnostics || [] // <--- Adicionamos isso aqui!
 }
