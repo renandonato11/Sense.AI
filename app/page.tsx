@@ -1,37 +1,22 @@
 import { getStoreMetrics } from './actions/analytics'
+import MetricsView from "@/components/metrics-view"
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  // 1. Buscamos os dados
+  // 1. Buscamos os dados reais (aqueles que vimos no modo debug)
   const metrics = await getStoreMetrics()
 
+  // 2. Mapeamos os dados para o componente MetricsView
+  // Garantimos que cada prop receba exatamente o que precisa
   return (
-    <div style={{ padding: '40px', fontFamily: 'monospace', backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
-      <h1 style={{ color: 'red', fontSize: '32px' }}>🛠️ MODO DEBUG: VERDADE DOS DADOS</h1>
-      
-      <div style={{ background: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxWidth: '600px' }}>
-        <p style={{ fontSize: '20px' }}><strong>Sinais no Banco:</strong> {metrics.totalEvents}</p>
-        <p style={{ fontSize: '20px' }}><strong>Diagnósticos da IA:</strong> {metrics.totalDiagnostics}</p>
-        <p style={{ fontSize: '20px' }}><strong>Receita Estimada:</strong> R$ {metrics.estimatedRevenue}</p>
-        <p style={{ fontSize: '20px' }}><strong>Taxa de Frete:</strong> {metrics.shippingRate}%</p>
-        
-        <hr style={{ margin: '20px 0' }} />
-        
-        <h3>Últimos Diagnósticos (Raw):</h3>
-        <pre style={{ background: '#eee', padding: '10px', overflow: 'auto' }}>
-          {JSON.stringify(metrics.recentDiagnostics, null, 2)}
-        </pre>
-      </div>
-
-      <p style={{ marginTop: '20px', color: '#666' }}>
-        Se os números acima forem 0, o problema está no <b>analytics.ts</b> ou na <b>conexão com o Supabase</b>.<br/>
-        Se os números acima estiverem CORRETOS, o problema está no componente <b>MetricsView</b>.
-      </p>
-    </div>
-  )
+    <MetricsView 
+      totalInterventions={metrics.totalDiagnostics} // Mostra os 50 diagnósticos
+      shippingRate={metrics.shippingRate.toFixed(1)} // Mostra 20.0%
+      recoveredRevenue={metrics.estimatedRevenue} // Mostra R$ 7500
+      chartData={metrics.chartData} // Preenche o gráfico
+      allDiagnostics={metrics.recentDiagnostics} // Preenche a tabela de sessões
+    />
+  );
 }
-<p style={{ color: 'red', fontWeight: 'bold' }}>
-  Erro do Servidor: {metrics.error || 'Nenhum erro detectado'}
-</p>
