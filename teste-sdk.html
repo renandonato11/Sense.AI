@@ -2,24 +2,54 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Teste Final Sense.Ai</title>
-    <style>body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 50px; }</style>
+    <title>SENSE.AI - Simulador de Intervenção</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f4f7f6; }
+        .btn-group { display: flex; gap: 20px; }
+        button { padding: 15px 25px; font-size: 16px; cursor: pointer; border: none; border-radius: 8px; background: #000; color: #fff; transition: 0.3s; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        
+        /* ESTILO DO POP-UP DE INTERVENÇÃO */
+        #sense-popup {
+            position: fixed; bottom: 20px; right: 20px; width: 320px; 
+            background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: none; flex-direction: column; overflow: hidden;
+            animation: slideUp 0.4s ease-out; z-index: 9999;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .popup-header { padding: 15px; color: white; font-weight: bold; text-align: center; }
+        .popup-body { padding: 20px; text-align: center; color: #444; font-size: 14px; }
+        .popup-btn { margin: 0 20px 20px; padding: 10px; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold; }
+        .close-btn { position: absolute; top: 5px; right: 10px; cursor: pointer; font-size: 18px; color: #999; }
+    </style>
 </head>
 <body>
-    <h1>Simulador Sense.Ai</h1>
-    <button onclick="sendSignal('shipping_doubt')">Simular Dúvida de Frete</button>
-    <button onclick="sendSignal('cart_abandonment')">Simular Abandono de Carrinho</button>
-    <div id="log" style="white-space: pre-wrap; background: #eee; padding: 10px; border-radius: 5px; width: 80%; font-family: monospace;">Aguardando cliques...</div>
+
+    <h1>Sense.Ai <span style="color: #2563eb;">Interventions</span></h1>
+    <p>Simule o comportamento do usuário para disparar a IA</p>
+
+    <div class="btn-group">
+        <button onclick="sendSignal('shipping_doubt')">Dúvida de Frete</button>
+        <button onclick="sendSignal('cart_abandonment')">Abandono de Carrinho</button>
+    </div>
+
+    <!-- ESTRUTURA DO POP-UP -->
+    <div id="sense-popup">
+        <div id="p-header" class="popup-header">CUPOM DISPONÍVEL</div>
+        <div class="popup-body">
+            <span class="close-btn" onclick="closePopup()">×</span>
+            <p id="p-message">Mensagem de recuperação...</p>
+            <button id="p-button" class="popup-btn">Aproveitar Agora</button>
+        </div>
+    </div>
 
     <script>
         async function sendSignal(type) {
-            // ⚠️ ATENÇÃO: USE A URL CURTA DE PRODUÇÃO AQUI!
-            const API_URL = 'https://sense-ai.vercel.app/api/collect'; 
+            const API_URL = 'https://sense-ai.vercel.app/api/collect'; // <--- USE SUA URL DE PRODUÇÃO
             const API_KEY = 'sa_live_test_123';
 
-            const logDiv = document.getElementById('log');
-            logDiv.innerText = `Enviando ${type}...`;
-
+            console.log(`Enviando sinal: ${type}...`);
+            
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -31,19 +61,32 @@
                     })
                 });
 
-                const text = await response.text(); // Pega a resposta como texto primeiro
-                console.log("Resposta do servidor:", text);
+                const data = await response.json();
 
-                if (response.ok) {
-                    logDiv.innerText = "✅ SUCESSO: Sinal capturado!";
-                    alert("Sinal enviado com sucesso!");
+                if (data.success && data.intervention) {
+                    showPopup(data.intervention);
                 } else {
-                    logDiv.innerText = `❌ ERRO ${response.status}: ${text}`;
+                    alert("Sinal capturado, mas nenhuma intervenção configurada.");
                 }
             } catch (err) {
-                logDiv.innerText = `💥 ERRO CRÍTICO: ${err.message}`;
-                console.error(err);
+                alert("Erro ao conectar com a API do Sense.Ai");
             }
+        }
+
+        function showPopup(intervention) {
+            const popup = document.getElementById('sense-popup');
+            document.getElementById('p-header').innerText = intervention.title;
+            document.getElementById('p-header').style.backgroundColor = intervention.color;
+            document.getElementById('p-message').innerText = intervention.message;
+            const btn = document.getElementById('p-button');
+            btn.innerText = intervention.buttonText;
+            btn.style.backgroundColor = intervention.color;
+
+            popup.style.display = 'flex';
+        }
+
+        function closePopup() {
+            document.getElementById('sense-popup').style.display = 'none';
         }
     </script>
 </body>
