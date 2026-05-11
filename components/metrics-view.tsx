@@ -18,6 +18,17 @@ export default function MetricsView({
   chartData, 
   allDiagnostics 
 }: MetricsViewProps) {
+
+  // FUNÇÃO MÁGICA: Ela procura o valor em qualquer nome de coluna possível
+  const findValue = (obj: any, targets: string[]) => {
+    for (const target of targets) {
+      if (obj[target] !== undefined && obj[target] !== null && obj[target] !== '') {
+        return obj[target];
+      }
+    }
+    return null;
+  };
+
   return (
     <div className="p-8 space-y-8">
       <div className="flex justify-between items-center">
@@ -111,41 +122,47 @@ export default function MetricsView({
                   <th className="px-6 py-3">Confiança</th>
                   <th className="px-6 py-3">Data</th>
                 </tr>
-              </thead_body>
+              </thead>
               <tbody className="divide-y divide-slate-200">
-  {allDiagnostics && allDiagnostics.length > 0 ? (
-    allDiagnostics.slice(0, 15).map((diag: any) => {
-      // --- LÓGICA DE VARREDURA DE DADOS ---
-      const finalIntent = diag.intent || diag.intent_label || diag.category || 'Unknown';
-      const finalConfidence = diag.confidence !== undefined ? diag.confidence : (diag.confidence_score || 0);
-      // ------------------------------------
-
-      return (
-        <tr key={diag.id} className="bg-white hover:bg-slate-50 transition-colors">
-          <td className="px-6 py-4 font-mono text-xs text-slate-400">
-            {diag.session_id ? `${diag.session_id.substring(0, 8)}...` : 'N/A'}
-          </td>
-          <td className="px-6 py-4">
-            <span className={`px-2 py-1 rounded-full text-xs font-medium 
-              ${finalIntent === 'shipping' ? 'bg-blue-100 text-blue-700' : 
-                finalIntent === 'checkout' ? 'bg-orange-100 text-orange-700' : 
-                finalIntent === 'price' ? 'bg-green-100 text-green-700' : 
-                'bg-slate-100 text-slate-700'}`}>
-              {finalIntent}
-            </span>
-          </td>
-          <td className="px-6 py-4 font-medium">
-            {(Number(finalConfidence) * 100).toFixed(0)}%
-          </td>
-          <td className="px-6 py-4">
-            {diag.created_at ? new Date(diag.created_at).toLocaleDateString('pt-BR') : 'Recente'}
-          </td>
-        </tr>
-      );
-    })
-  ) : (
-    <tr>
-      <td colSpan={4} className="px-6 py-10 text-center text-slate-400">Nenhum diagnóstico detectado ainda.</td>
-    </tr>
-  )}
-</tbody>
+                {allDiagnostics && allDiagnostics.length > 0 ? (
+                  allDiagnostics.slice(0, 15).map((diag: any) => {
+                    // BUSCA DINÂMICA POR VÁRIOS NOMES POSSÍVEIS
+                    const intent = findValue(diag, ['intent', 'intent_label', 'category', 'type']);
+                    const confidence = findValue(diag, ['confidence', 'confidence_score', 'score']);
+                    
+                    return (
+                      <tr key={diag.id} className="bg-white hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 font-mono text-xs text-slate-400">
+                          {diag.session_id ? `${diag.session_id.substring(0, 8)}...` : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium 
+                            ${intent === 'shipping' ? 'bg-blue-100 text-blue-700' : 
+                              intent === 'checkout' ? 'bg-orange-100 text-orange-700' : 
+                              intent === 'price' ? 'bg-green-100 text-green-700' : 
+                              'bg-slate-100 text-slate-700'}`}>
+                            {intent || 'Unknown'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 font-medium">
+                          {confidence !== null ? `${(Number(confidence) * 100).toFixed(0)}%` : '0%'}
+                        </td>
+                        <td className="px-6 py-4">
+                          {diag.created_at ? new Date(diag.created_at).toLocaleDateString('pt-BR') : 'Recente'}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-10 text-center text-slate-400">Nenhum diagnóstico detectado ainda.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
