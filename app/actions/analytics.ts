@@ -3,53 +3,56 @@
 import { createClient } from '@/utils/supabase/server'
 
 export async function getStoreMetrics() {
+  const supabase = await createClient()
+  const userId = "27e64eb9-4b0b-4ffc-904a-5cec7099b0c7" 
+
   try {
-    const supabase = await createClient()
-    const userId = "27e64eb9-4b0b-4ffc-904a-5cec7099b0c7" 
-
-    // TESTE 1: A conexão com o Supabase está funcionando?
-    const { data: healthCheck } = await supabase.from('stores').select('id').limit(1)
-    if (!healthCheck) throw new Error("Conexão com Supabase falhou: Nenhuma loja encontrada no banco")
-
-    // TESTE 2: A loja do usuário existe?
-    const { data: store, error: storeError } = await supabase
+    const { data: store } = await supabase
       .from('stores')
       .select('id')
       .eq('owner_id', userId) 
       .single()
 
-    if (storeError || !store) {
-      throw new Error(`Erro ao buscar loja: ${storeError?.message || 'Loja não encontrada'}`)
-    }
+    if (!store) throw new Error("Loja não encontrada")
 
-    // TESTE 3: Os eventos existem?
-    const { data: eventsData, error: eventsError } = await supabase
+    const { data: eventsData } = await supabase
       .from('events')
       .select('id') 
       .eq('store_id', store.id)
-
-    if (eventsError) throw new Error(`Erro ao buscar eventos: ${eventsError.message}`)
-
-    // Se chegou aqui, tudo funcionou!
     const totalEvents = eventsData ? eventsData.length : 0
-    
-    // Busca diagnósticos
-    const { data: diagData } = await supabase
-      .from('diagnostics')
-      .select('*') 
-      .eq('store_id', store.id)
-    
-    const diagnostics = diagData || []
-    const totalDiagnostics = diagnostics.length
 
-    const counts = diagnostics.reduce((acc: any, curr) => {
-      const intent = curr.intent || 'unknown'
+    // Buscamos as colunas explicitamente para evitar erros de case-sensitivity
+    const { data: diagData, error: diagError } = await supabase
+      .from('diagnostics')
+      .select('id, session_id, intent, confidence, created_at') 
+      .eq('store_id', store.id)
+      .order('created_at', { ascending: false })
+
+    if (diagError) console.error("Erro diagnósticos:", diagError)
+    
+    // Mapeamento Forçado: Garante que os nomes batam com o componente visual
+    const processedDiagnostics = (diagData || []).map(diag => ({
+      id: diag.id,
+      session_id: diag.session_id,
+      intent: diag.intent || 'Unknown', // Garante que nunca fique vazio
+      confidence: diag.confidence || 0,
+      created_at: diag.created_at
+    }))
+
+    const totalDiagnostics = processedDiagnostics.length
+
+    const counts = processedDiagnostics.reduce((acc: any, curr) => {
+      const intent = curr.intent
       acc[intent] = (acc[intent] || 0) + 1
       return acc
     }, {}) || {}
 
-    const chartData = Object.entries(counts).map(([name, value]) => ({ name, value }))
-    const shippingCount = diagnostics.filter(d => d.intent === 'shipping').length
+    const chartData = Object.entries(counts).map(([name, value]) => ({
+      name,
+      value
+    }))
+
+    const shippingCount = processedDiagnostics.filter(d => d.intent === 'shipping').length
     const shippingRate = totalDiagnostics > 0 ? (shippingCount / totalDiagnostics) * 100 : 0
     const estimatedRevenue = totalDiagnostics * 150 
 
@@ -59,18 +62,10 @@ export async function getStoreMetrics() {
       chartData,
       estimatedRevenue,
       shippingRate,
-      recentDiagnostics: diagnostics.slice(0, 10)
+      recentDiagnostics: processedDiagnostics.slice(0, 15) 
     }
   } catch (error: any) {
-    // AQUI ESTÁ O SEGREDO: Vamos retornar o erro para a tela de Debug
-    return { 
-      totalEvents: 0, 
-      totalDiagnostics: 0, 
-      chartData: [], 
-      estimatedRevenue: 0, 
-      shippingRate: 0, 
-      recentDiagnostics: [],
-      error: error.message // <--- Enviamos o erro para a tela
-    }
+    console.error("Erro analytics:", error.message)
+    return { totalEvents: 0, totalDiagnostics: 0, chartData: [], estimatedRevenue: 0, shippingRate: 0, recentDiagnostics: [] }
   }
 }
