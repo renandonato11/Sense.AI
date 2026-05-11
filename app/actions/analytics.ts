@@ -21,28 +21,20 @@ export async function getStoreMetrics() {
       .eq('store_id', store.id)
     const totalEvents = eventsData ? eventsData.length : 0
 
-    // Buscamos as colunas explicitamente para evitar erros de case-sensitivity
+    // PEGANDO TUDO (*) para não ter erro de nome de coluna
     const { data: diagData, error: diagError } = await supabase
       .from('diagnostics')
-      .select('id, session_id, intent, confidence, created_at') 
+      .select('*') 
       .eq('store_id', store.id)
       .order('created_at', { ascending: false })
 
     if (diagError) console.error("Erro diagnósticos:", diagError)
     
-    // Mapeamento Forçado: Garante que os nomes batam com o componente visual
-    const processedDiagnostics = (diagData || []).map(diag => ({
-      id: diag.id,
-      session_id: diag.session_id,
-      intent: diag.intent || 'Unknown', // Garante que nunca fique vazio
-      confidence: diag.confidence || 0,
-      created_at: diag.created_at
-    }))
+    const diagnostics = diagData || []
+    const totalDiagnostics = diagnostics.length
 
-    const totalDiagnostics = processedDiagnostics.length
-
-    const counts = processedDiagnostics.reduce((acc: any, curr) => {
-      const intent = curr.intent
+    const counts = diagnostics.reduce((acc: any, curr) => {
+      const intent = curr.intent || curr.intent_label || 'unknown'
       acc[intent] = (acc[intent] || 0) + 1
       return acc
     }, {}) || {}
@@ -52,7 +44,7 @@ export async function getStoreMetrics() {
       value
     }))
 
-    const shippingCount = processedDiagnostics.filter(d => d.intent === 'shipping').length
+    const shippingCount = diagnostics.filter(d => (d.intent || d.intent_label) === 'shipping').length
     const shippingRate = totalDiagnostics > 0 ? (shippingCount / totalDiagnostics) * 100 : 0
     const estimatedRevenue = totalDiagnostics * 150 
 
@@ -62,7 +54,7 @@ export async function getStoreMetrics() {
       chartData,
       estimatedRevenue,
       shippingRate,
-      recentDiagnostics: processedDiagnostics.slice(0, 15) 
+      recentDiagnostics: diagnostics.slice(0, 15) 
     }
   } catch (error: any) {
     console.error("Erro analytics:", error.message)
