@@ -10,60 +10,32 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json()
-    const { api_key, event_type, payload } = body
-
-    if (!api_key) return NextResponse.json({ error: 'No API Key' }, { status: 400, headers: corsHeaders })
+    const { api_key, event_type } = body
 
     const supabase = await createClient()
     const { data: store } = await supabase.from('stores').select('id').eq('api_key', api_key).single()
+
     if (!store) return NextResponse.json({ error: 'Invalid API Key' }, { status: 403, headers: corsHeaders })
 
-    // 1. Salva o evento
-    const { data: eventData } = await supabase
-      .from('events')
-      .insert({ store_id: store.id, event_type, payload })
-      .select().single()
+    // Salva o evento no banco (apenas para manter o histórico)
+    await supabase.from('events').insert({ store_id: store.id, event_type, payload: {} })
 
-    // 2. Motor de IA para definir Intenção e INTERVENÇÃO
-    let intent = 'general'
-    let intervention = null // Aqui definimos a ação de recuperação
-
-    if (event_type === 'shipping_doubt') {
-      intent = 'shipping'
-      intervention = {
-        title: '🚚 Frete Grátis!',
-        message: 'Notamos que você quer economizar no frete. Use o cupom FRETEGRATIS e finalize sua compra!',
-        buttonText: 'Aplicar Cupom',
-        color: '#2563eb'
-      }
-    } else if (event_type === 'cart_abandonment') {
-      intent = 'checkout'
-      intervention = {
-        title: '⌛ Não vá embora!',
-        message: 'Seu carrinho está reservado, mas por pouco tempo. Ganhe 5% de desconto agora!',
-        buttonText: 'Pegar Desconto',
-        color: '#ea580c'
-      }
+    // FORÇANDO a resposta de intervenção para teste absoluto
+    const mockIntervention = {
+      title: '🚀 TESTE DE IA!',
+      message: 'Se você está vendo isso, a API do Sense.Ai está funcionando perfeitamente!',
+      buttonText: 'Incrível!',
+      color: '#2563eb'
     }
 
-    // 3. Salva o diagnóstico
-    await supabase.from('diagnostics').insert({
-      store_id: store.id,
-      event_id: eventData?.id,
-      intent: intent,
-      confidence: 0.98,
-      payload
-    })
-
-    // RETORNO CRUCIAL: Enviamos a intervenção de volta para o SDK
     return NextResponse.json({ 
       success: true, 
-      intent, 
-      intervention // O SDK vai ler isso e mostrar o pop-up!
+      intent: 'test', 
+      intervention: mockIntervention 
     }, { status: 200, headers: corsHeaders })
 
   } catch (error: any) {
-    return NextResponse.json({ error: 'Server Error' }, { status: 500, headers: corsHeaders })
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders })
   }
 }
 
