@@ -1,93 +1,78 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>SENSE.AI - Simulador de Intervenção</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f4f7f6; }
-        .btn-group { display: flex; gap: 20px; }
-        button { padding: 15px 25px; font-size: 16px; cursor: pointer; border: none; border-radius: 8px; background: #000; color: #fff; transition: 0.3s; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        
-        /* ESTILO DO POP-UP DE INTERVENÇÃO */
-        #sense-popup {
-            position: fixed; bottom: 20px; right: 20px; width: 320px; 
-            background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            display: none; flex-direction: column; overflow: hidden;
-            animation: slideUp 0.4s ease-out; z-index: 9999;
+"use client"
+
+import { useState } from 'react'
+
+export default function TestSdkPage() {
+  const [log, setLog] = useState('Aguardando cliques...')
+  const [apiResponse, setApiResponse] = useState<string>('Nenhuma resposta ainda')
+  const [intervention, setIntervention] = useState<any>(null)
+
+  async function sendSignal(type: string) {
+    const API_URL = '/api/collect'; 
+    const API_KEY = 'sa_live_test_123';
+
+    setLog(`Enviando ${type}...`);
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          api_key: API_KEY,
+          event_type: type,
+          payload: { url: window.location.href }
+        })
+      });
+
+      const data = await response.json();
+      setApiResponse(JSON.stringify(data, null, 2)); // MOSTRA A RESPOSTA BRUTA NA TELA
+
+      if (data.success) {
+        setLog("✅ SUCESSO: Sinal capturado!");
+        if (data.intervention) {
+          setIntervention(data.intervention);
+        } else {
+          setLog("⚠️ Sucesso, mas a API NÃO mandou a intervenção.");
         }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .popup-header { padding: 15px; color: white; font-weight: bold; text-align: center; }
-        .popup-body { padding: 20px; text-align: center; color: #444; font-size: 14px; }
-        .popup-btn { margin: 0 20px 20px; padding: 10px; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold; }
-        .close-btn { position: absolute; top: 5px; right: 10px; cursor: pointer; font-size: 18px; color: #999; }
-    </style>
-</head>
-<body>
+      } else {
+        setLog(`❌ ERRO: ${data.error}`);
+      }
+    } catch (err: any) {
+      setLog(`💥 ERRO CRÍTICO: ${err.message}`);
+    }
+  }
 
-    <h1>Sense.Ai <span style="color: #2563eb;">Interventions</span></h1>
-    <p>Simule o comportamento do usuário para disparar a IA</p>
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4 font-sans">
+      <h1 className="text-4xl font-bold mb-2 text-slate-900">Sense.Ai <span className="text-blue-600">Test</span></h1>
+      
+      <div className="flex gap-4 mb-8">
+        <button onClick={() => sendSignal('shipping_doubt')} className="px-6 py-3 bg-black text-white rounded-xl font-medium">Frete</button>
+        <button onClick={() => sendSignal('cart_abandonment')} className="px-6 py-3 bg-black text-white rounded-xl font-medium">Carrinho</button>
+      </div>
 
-    <div class="btn-group">
-        <button onclick="sendSignal('shipping_doubt')">Dúvida de Frete</button>
-        <button onclick="sendSignal('cart_abandonment')">Abandono de Carrinho</button>
-    </div>
-
-    <!-- ESTRUTURA DO POP-UP -->
-    <div id="sense-popup">
-        <div id="p-header" class="popup-header">CUPOM DISPONÍVEL</div>
-        <div class="popup-body">
-            <span class="close-btn" onclick="closePopup()">×</span>
-            <p id="p-message">Mensagem de recuperação...</p>
-            <button id="p-button" class="popup-btn">Aproveitar Agora</button>
+      <div className="grid grid-cols-1 gap-4 w-full max-w-md">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 text-center font-bold">{log}</div>
+        <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 text-green-400 font-mono text-xs overflow-auto max-h-40">
+          <p className="text-slate-400 mb-2 underline">Resposta Bruta da API:</p>
+          {apiResponse}
         </div>
+      </div>
+
+      {intervention && (
+        <div className="fixed bottom-6 right-6 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-bottom-10 duration-300 z-50">
+          <div className="p-4 text-white font-bold text-center" style={{ backgroundColor: intervention.color }}>
+            {intervention.title}
+          </div>
+          <div className="p-6 text-center">
+            <button onClick={() => setIntervention(null)} className="absolute top-2 right-2 text-slate-400">✕</button>
+            <p className="text-slate-600 text-sm mb-6">{intervention.message}</p>
+            <button onClick={() => setIntervention(null)} className="w-full py-3 rounded-lg text-white font-bold" style={{ backgroundColor: intervention.color }}>
+              {intervention.buttonText}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-
-    <script>
-        async function sendSignal(type) {
-            const API_URL = 'https://sense-ai.vercel.app/api/collect'; // <--- USE SUA URL DE PRODUÇÃO
-            const API_KEY = 'sa_live_test_123';
-
-            console.log(`Enviando sinal: ${type}...`);
-            
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        api_key: API_KEY,
-                        event_type: type,
-                        payload: { url: window.location.href }
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.intervention) {
-                    showPopup(data.intervention);
-                } else {
-                    alert("Sinal capturado, mas nenhuma intervenção configurada.");
-                }
-            } catch (err) {
-                alert("Erro ao conectar com a API do Sense.Ai");
-            }
-        }
-
-        function showPopup(intervention) {
-            const popup = document.getElementById('sense-popup');
-            document.getElementById('p-header').innerText = intervention.title;
-            document.getElementById('p-header').style.backgroundColor = intervention.color;
-            document.getElementById('p-message').innerText = intervention.message;
-            const btn = document.getElementById('p-button');
-            btn.innerText = intervention.buttonText;
-            btn.style.backgroundColor = intervention.color;
-
-            popup.style.display = 'flex';
-        }
-
-        function closePopup() {
-            document.getElementById('sense-popup').style.display = 'none';
-        }
-    </script>
-</body>
-</html>
+  )
+}
