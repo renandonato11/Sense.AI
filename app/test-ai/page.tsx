@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-export default function TestSdkPage() {
+export default function Test-ai() {
   const [log, setLog] = useState('Aguardando cliques...')
   const [apiResponse, setApiResponse] = useState<string>('Nenhuma resposta ainda')
   const [intervention, setIntervention] = useState<any>(null)
