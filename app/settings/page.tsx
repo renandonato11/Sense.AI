@@ -1,84 +1,133 @@
 "use client"
 import { useState, useEffect } from "react"
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@/utils/supabase/client" // Use o utilitário do projeto
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { toast } from "sonner"
 
 export default function SettingsPage() {
+  const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [storeId, setStoreId] = useState<string | null>(null)
+  
+  // Sincronizado com as chaves da API: shipping, price, confidence, distraction
   const [configs, setConfigs] = useState<{ [key: string]: any }>({
-    SHIPPING_DOUBT: { title: '', message: '', color: '#2563eb' },
-    PRICE_HESITATION: { title: '', message: '', color: '#059669' },
-    DISTRACTED: { title: '', message: '', color: '#dc2626' },
+    shipping: { title: '', message: '', button_text: '', color: '#2563eb' },
+    price: { title: '', message: '', button_text: '', color: '#059669' },
+    distraction: { title: '', message: '', button_text: '', color: '#dc2626' },
+    confidence: { title: '', message: '', button_text: '', color: '#4f46e5' },
   })
 
-  // Carregar configurações atuais do banco
   useEffect(() => {
     async function loadSettings() {
-      const { data } = await supabase.from('store_settings').select('*');
-      if (data) {
-        data.forEach(item => {
-          setConfigs(prev => ({ ...prev, [item.intent_label]: item }));
-        });
+      // 1. Pegar o usuário logado
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // 2. Buscar a loja vinculada a esse usuário
+      const { data: store } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single()
+
+      if (store) {
+        setStoreId(store.id)
+
+        // 3. Buscar as intervenções configuradas para esta loja
+        const { data: savedConfigs } = await supabase
+          .from('interventions')
+          .select('*')
+          .eq('store_id', store.id)
+
+        if (savedConfigs) {
+          const newConfigs = { ...configs }
+          savedConfigs.forEach(item => {
+            newConfigs[item.intent] = {
+              title: item.title,
+              message: item.message,
+              button_text: item.button_text,
+              color: item.color_hex
+            }
+          })
+          setConfigs(newConfigs)
+        }
       }
     }
-    loadSettings();
-  }, []);
+    loadSettings()
+  }, [])
 
-    const saveSetting = async (intent: string) => {
+  const saveSetting = async (intent: string) => {
+    if (!storeId) {
+      toast.error("Loja não encontrada")
+      return
+    }
+
     setLoading(true)
     const config = configs[intent]
     
-    // O segredo está no segundo argumento do upsert: { onConflict: 'store_id,intent_label' }
-    // Isso diz ao Supabase: "Se você encontrar a mesma loja e a mesma intenção, APAGUE a antiga e salve a nova"
     const { error } = await supabase
-      .from('store_settings')
+      .from('interventions') // Tabela correta
       .upsert(
         { 
-          store_id: '3f5e37a5-dedc-4039-acdf-b3652787d2e6', 
-          intent_label: intent, 
+          store_id: storeId, // ID Dinâmico
+          intent: intent,      // Coluna correta
           title: config.title, 
           message: config.message, 
-          color: config.color 
+          button_text: config.button_text, 
+          color_hex: config.color,
+          is_active: true 
         },
-        { onConflict: 'store_id,intent_label' } // <--- ESSA LINHA RESOLVE O ERRO
+        { onConflict: 'store_id,intent' } 
       )
 
     if (error) {
-      console.error("Erro detalhado:", error);
-      alert("Erro ao salvar: " + error.message);
+      console.error("Erro detalhado:", error)
+      toast.error("Erro ao salvar: " + error.message)
     } else {
-      alert("Configuração salva com sucesso!");
+      toast.success("Configuração salva com sucesso!")
     }
     setLoading(false)
   }
 
-
   return (
     <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
-      <h1 className="text-3xl font-bold">Configurações de Intervenção</h1>
-      <p className="text-slate-500">Personalize o que seus clientes verão no momento da hesitação.</p>
+      <div>
+        <h1 className="text-3xl font-bold">Configurações de Intervenção</h1>
+        <p className="text-slate-500">Personalize o que seus clientes verão no momento da hesitação.</p>
+      </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {Object.entries(configs).map(([intent, values]) => (
           <Card key={intent}>
             <CardHeader>
-              <CardTitle className="text-lg font-mono text-blue-600">{intent}</CardTitle>
+              <CardTitle className="text-lg font-mono text-blue-600 uppercase">
+                {intent.replace('_', ' ')}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label>Título do Pop-up</Label>
                   <Input 
                     value={values.title} 
                     onChange={(e) => setConfigs({...configs, [intent]: {...values, title: e.target.value}})} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Mensagem de Recuperação</Label>
+                  <Input 
+                    value={values.message} 
+                    onChange={(e) => setConfigs({...configs, [intent]: {...values, message: e.target.value}})} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Texto do Botão (CTA)</Label>
+                  <Input 
+                    value={values.button_text} 
+                    onChange={(e) => setConfigs({...configs, [intent]: {...values, button_text: e.target.value}})} 
                   />
                 </div>
                 <div className="space-y-2">
@@ -92,14 +141,11 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Mensagem de Recuperação</Label>
-                <Input 
-                  value={values.message} 
-                  onChange={(e) => setConfigs({...configs, [intent]: {...values, message: e.target.value}})} 
-                />
-              </div>
-              <Button onClick={() => saveSetting(intent)} disabled={loading}>
+              <Button 
+                className="w-full" 
+                onClick={() => saveSetting(intent)} 
+                disabled={loading}
+              >
                 {loading ? "Salvando..." : "Salvar Configuração"}
               </Button>
             </CardContent>
