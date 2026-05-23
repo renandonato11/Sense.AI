@@ -1,21 +1,21 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
-// Mensagens padrão do sistema (Fallback) caso o lojista não tenha configurado nada
+// Mensagens padrão do sistema (Fallback)
 const SYSTEM_FALLBACKS: Record<string, any> = {
-  shipping_doubt: {
+  shipping: { // Ajustei para 'shipping' para bater com o Dashboard
     title: '📦 Frete Grátis?',
     message: 'Notamos que você tem dúvidas sobre a entrega. Que tal um cupom de frete grátis?',
     buttonText: 'Quero meu cupom',
     color: '#2563eb'
   },
-  price_hesitation: {
+  price: { // Ajustei para 'price'
     title: '💰 Oferta Especial',
     message: 'Este produto é incrível! Garanta o seu agora com um desconto exclusivo.',
     buttonText: 'Aproveitar Agora',
     color: '#059669'
   },
-  cart_abandonment: {
+  distraction: { // Ajustei para 'distraction'
     title: '🛒 Não esqueça seu carrinho!',
     message: 'Seus itens selecionados estão esperando por você. Finalize sua compra agora.',
     buttonText: 'Voltar ao Carrinho',
@@ -53,19 +53,51 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid API Key' }, { status: 403, headers: corsHeaders })
     }
 
-    // 2. Log do evento (Histórico)
+    // =========================================================================
+    // LÓGICA de RASTREAMENTO DE CLIQUE (CONVERSÃO)
+    // =========================================================================
+    if (event_type === 'intervention_clicked') {
+      const intent = payload?.intent || 'default';
+
+      // Busca cliques atuais para incrementar
+      const { data: metric } = await supabase
+        .from('intervention_metrics')
+        .select('clicks')
+        .eq('store_id', store.id)
+        .eq('intent', intent)
+        .single();
+
+      const currentClicks = metric?.clicks || 0;
+
+      // Atualiza ou cria a métrica de clique
+      await supabase
+        .from('intervention_metrics')
+        .upsert({ 
+          store_id: store.id, 
+          intent: intent, 
+          clicks: currentClicks + 1,
+          updated_at: new Date().toISOString() 
+        }, { onConflict: 'store_id,intent' });
+
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Conversão registrada!' 
+      }, { status: 200, headers: corsHeaders })
+    }
+    // =========================================================================
+
+    // 2. Log do evento no histórico (Sinais de comportamento)
     await supabase.from('events').insert({ 
       store_id: store.id, 
       event_type, 
       payload: payload || {} 
     })
 
-    // 3. Definição da Intenção (Aqui você pode expandir a lógica de IA no futuro)
-    // Por enquanto, assumimos que o event_type enviado pelo SDK é a intenção
+    // 3. Definição da Intenção
     const intent = event_type; 
 
-    // 4. Busca de Intervenção Personalizada no Banco de Dados
-    const { data: customIntervention, error: fetchError } = await supabase
+    // 4. Busca de Intervenção Personalizada
+    const { data: customIntervention } = await supabase
       .from('interventions')
       .select('*')
       .eq('store_id', store.id)
@@ -73,7 +105,7 @@ export async function POST(req: Request) {
       .eq('is_active', true)
       .single()
 
-    // 5. Lógica de Resposta: Prioridade para Custom $\rightarrow$ depois Fallback $\rightarrow$ depois Default
+    // 5. Lógica de Resposta
     let finalIntervention;
 
     if (customIntervention) {

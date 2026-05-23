@@ -12,42 +12,52 @@ import { toast } from "sonner"
 
 // --- COMPONENTE DE SIMULADOR (O que o cliente vê no site dele) ---
 function PopupPreview({ config }: { config: any }) {
+  
+  // FUNÇÃO DE RASTREAMENTO DE CLIQUE
+  async function handleButtonClick() {
+    console.log("Simulando clique na intervenção...");
+    
+    // Aqui simulamos o que o SDK faria no site do cliente
+    try {
+      await fetch('/api/collect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          api_key: 'sa_live_test_123', // Em produção, isso viria da store.api_key
+          event_type: 'intervention_clicked',
+          payload: { intent: 'default' } // No simulador, marcamos como 'default'
+        })
+      });
+      toast.success("Clique rastreado com sucesso! ✅");
+    } catch (e) {
+      toast.error("Erro ao rastrear clique");
+    }
+  }
+
   return (
     <div className="relative w-full h-full bg-slate-200 rounded-xl overflow-hidden border-4 border-slate-300 shadow-inner">
-      {/* Mock do Site do Cliente */}
-      <div className="w-full h-full bg-white p-8">
-        <div className="flex justify-between items-center mb-8">
-          <div className="h-4 w-32 bg-slate-100 rounded" />
-          <div className="flex gap-2">
-            <div className="h-4 w-12 bg-slate-100 rounded" />
-            <div className="h-4 w-12 bg-slate-100 rounded" />
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div className="h-8 w-3/4 bg-slate-100 rounded" />
-          <div className="h-32 w-full bg-slate-50 rounded-lg" />
-          <div className="grid grid-cols-3 gap-4">
-            <div className="h-20 bg-slate-50 rounded" />
-            <div className="h-20 bg-slate-50 rounded" />
-            <div className="h-20 bg-slate-50 rounded" />
-          </div>
-        </div>
-
-        {/* O POP-UP REAL (Sincronizado com o Editor) */}
-        <div 
-          className="absolute bottom-8 right-8 w-80 p-6 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10 duration-500"
-          style={{ backgroundColor: config.primary_color, color: '#fff' }}
+      {/* ... resto do mock do site ... */}
+      
+      <div 
+        className="absolute bottom-8 right-8 w-80 p-6 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10 duration-500"
+        style={{ backgroundColor: config.primary_color, color: '#fff' }}
+      >
+        <h3 className="text-lg font-bold mb-2">{config.popup_title}</h3>
+        <p className="text-sm opacity-90 mb-4">{config.popup_text}</p>
+        
+        {/* BOTÃO AGORA TEM O ONCLICK */}
+        <Button 
+          onClick={handleButtonClick}
+          className="w-full" 
+          style={{ backgroundColor: '#fff', color: config.primary_color, fontWeight: 'bold' }}
         >
-          <h3 className="text-lg font-bold mb-2">{config.popup_title}</h3>
-          <p className="text-sm opacity-90 mb-4">{config.popup_text}</p>
-          <Button 
-            className="w-full" 
-            style={{ backgroundColor: '#fff', color: config.primary_color, fontWeight: 'bold' }}
-          >
-            {config.button_text}
-          </Button>
-        </div>
+          {config.button_text}
+        </Button>
       </div>
+    </div>
+  )
+}
+
       <div className="absolute top-4 left-4 bg-slate-800/50 text-white text-[10px] px-2 py-1 rounded uppercase font-bold">
         Simulador de Loja
       </div>
