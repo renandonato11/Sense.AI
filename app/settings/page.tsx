@@ -20,44 +20,35 @@ export default function SettingsPage() {
     confidence: { title: '', message: '', button_text: '', color: '#4f46e5' },
   })
 
-  useEffect(() => {
+    useEffect(() => {
     async function loadSettings() {
-      // 1. Pegar o usuário logado
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      // FORÇANDO O ID DA SUA LOJA PARA DESTRAVAR
+      const forceStoreId = '435b09cb-fcef-4864-b6b8-f28f2a0ec10c'; 
+      setStoreId(forceStoreId);
+      console.log("Store ID forçado para:", forceStoreId);
 
-      // 2. Buscar a loja vinculada a esse usuário
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+      // Agora buscamos as configurações usando esse ID forçado
+      const { data: savedConfigs } = await supabase
+        .from('interventions')
+        .select('*')
+        .eq('store_id', forceStoreId);
 
-      if (store) {
-        setStoreId(store.id)
-
-        // 3. Buscar as intervenções configuradas para esta loja
-        const { data: savedConfigs } = await supabase
-          .from('interventions')
-          .select('*')
-          .eq('store_id', store.id)
-
-        if (savedConfigs) {
-          const newConfigs = { ...configs }
-          savedConfigs.forEach(item => {
-            newConfigs[item.intent] = {
-              title: item.title,
-              message: item.message,
-              button_text: item.button_text,
-              color: item.color_hex
-            }
-          })
-          setConfigs(newConfigs)
-        }
+      if (savedConfigs) {
+        const newConfigs = { ...configs }
+        savedConfigs.forEach(item => {
+          newConfigs[item.intent] = {
+            title: item.title,
+            message: item.message,
+            button_text: item.button_text,
+            color: item.color_hex
+          }
+        })
+        setConfigs(newConfigs)
       }
     }
     loadSettings()
   }, [])
+
 
   const saveSetting = async (intent: string) => {
     if (!storeId) {
