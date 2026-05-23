@@ -105,7 +105,7 @@ export async function POST(req: Request) {
       .eq('is_active', true)
       .single()
 
-    // 5. Lógica de Resposta
+     // 5. Lógica de Resposta
     let finalIntervention;
 
     if (customIntervention) {
@@ -119,6 +119,37 @@ export async function POST(req: Request) {
       finalIntervention = SYSTEM_FALLBACKS[intent] || SYSTEM_FALLBACKS.default;
     }
 
+    // =========================================================================
+    // REGISTRO DE IMPRESSÃO (Lógica de CTO: Contando quantas vezes o pop-up apareceu)
+    // =========================================================================
+    try {
+      // 1. Busca a quantidade de impressões atual para esta loja e intenção
+      const { data: impMetric } = await supabase
+        .from('intervention_metrics')
+        .select('impressions')
+        .eq('store_id', store.id)
+        .eq('intent', intent)
+        .single();
+
+      const currentImpressions = impMetric?.impressions || 0;
+
+      // 2. Atualiza somando +1 (Upsert garante que cria a linha se ela não existir)
+      await supabase
+        .from('intervention_metrics')
+        .upsert({ 
+          store_id: store.id, 
+          intent: intent, 
+          impressions: currentImpressions + 1,
+          updated_at: new Date().toISOString() 
+        }, { onConflict: 'store_id,intent' });
+      
+    } catch (metricError) {
+      // Logamos o erro, mas não travamos a API. 
+      // O cliente deve receber o pop-up mesmo se a contagem de métricas falhar.
+      console.error('Erro ao registrar impressão:', metricError);
+    }
+    // =========================================================================
+
     return NextResponse.json({ 
       success: true, 
       intent: intent, 
@@ -131,6 +162,3 @@ export async function POST(req: Request) {
   }
 }
 
-export async function OPTIONS() {
-  return NextResponse.json({}, { status: 200, headers: { 'Access-Control-Allow-Origin': '*' } })
-}
