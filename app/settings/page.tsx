@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { createClient } from "@/utils/supabase/client" // Use o utilitário do projeto
+import { createClient } from "@/utils/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,10 +9,13 @@ import { toast } from "sonner"
 
 export default function SettingsPage() {
   const supabase = createClient()
-  const [loading, setLoading] = useState(false)
-  const [storeId, setStoreId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   
-  // Sincronizado com as chaves da API: shipping, price, confidence, distraction
+  // ID da sua loja forçado para eliminar o erro "Loja não encontrada"
+  const forceStoreId = '435b09cb-fcef-4864-b6b8-f28f2a0ec10c';
+
+  // Sincronizado com as chaves da API
   const [configs, setConfigs] = useState<{ [key: string]: any }>({
     shipping: { title: '', message: '', button_text: '', color: '#2563eb' },
     price: { title: '', message: '', button_text: '', color: '#059669' },
@@ -20,18 +23,13 @@ export default function SettingsPage() {
     confidence: { title: '', message: '', button_text: '', color: '#4f46e5' },
   })
 
-    useEffect(() => {
+  useEffect(() => {
     async function loadSettings() {
-      // FORÇANDO O ID DA SUA LOJA PARA DESTRAVAR
-      const forceStoreId = '435b09cb-fcef-4864-b6b8-f28f2a0ec10c'; 
-      setStoreId(forceStoreId);
-      console.log("Store ID forçado para:", forceStoreId);
-
-      // Agora buscamos as configurações usando esse ID forçado
+      // Buscamos as intervenções usando o ID forçado
       const { data: savedConfigs } = await supabase
         .from('interventions')
         .select('*')
-        .eq('store_id', forceStoreId);
+        .eq('store_id', forceStoreId)
 
       if (savedConfigs) {
         const newConfigs = { ...configs }
@@ -45,43 +43,39 @@ export default function SettingsPage() {
         })
         setConfigs(newConfigs)
       }
+      setLoading(false)
     }
     loadSettings()
   }, [])
 
-
   const saveSetting = async (intent: string) => {
-    if (!storeId) {
-      toast.error("Loja não encontrada")
-      return
-    }
-
-    setLoading(true)
+    setSaving(true)
     const config = configs[intent]
     
     const { error } = await supabase
-      .from('interventions') // Tabela correta
+      .from('interventions')
       .upsert(
         { 
-          store_id: storeId, // ID Dinâmico
-          intent: intent,      // Coluna correta
+          store_id: forceStoreId,
+          intent: intent, 
           title: config.title, 
           message: config.message, 
           button_text: config.button_text, 
           color_hex: config.color,
           is_active: true 
         },
-        { onConflict: 'store_id,intent' } 
+        { onConflict: 'store_id,intent' }
       )
 
+    setSaving(false)
     if (error) {
-      console.error("Erro detalhado:", error)
       toast.error("Erro ao salvar: " + error.message)
     } else {
-      toast.success("Configuração salva com sucesso!")
+      toast.success("Configuração de " + intent + " salva!")
     }
-    setLoading(false)
   }
+
+  if (loading) return <div className="p-8 text-center">Carregando configurações...</div>
 
   return (
     <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
@@ -95,49 +89,47 @@ export default function SettingsPage() {
           <Card key={intent}>
             <CardHeader>
               <CardTitle className="text-lg font-mono text-blue-600 uppercase">
-                {intent.replace('_', ' ')}
+                {intent}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                  <Label>Título do Pop-up</Label>
-                  <Input 
-                    value={values.title} 
-                    onChange={(e) => setConfigs({...configs, [intent]: {...values, title: e.target.value}})} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Mensagem de Recuperação</Label>
-                  <Input 
-                    value={values.message} 
-                    onChange={(e) => setConfigs({...configs, [intent]: {...values, message: e.target.value}})} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Texto do Botão (CTA)</Label>
-                  <Input 
-                    value={values.button_text} 
-                    onChange={(e) => setConfigs({...configs, [intent]: {...values, button_text: e.target.value}})} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cor de Fundo</Label>
-                  <div className="flex gap-2">
-                    <Input type="color" value={values.color} 
-                           onChange={(e) => setConfigs({...configs, [intent]: {...values, color: e.target.value}})} 
-                           className="w-12 p-1 h-10" />
-                    <Input value={values.color} 
-                           onChange={(e) => setConfigs({...configs, [intent]: {...values, color: e.target.value}})} />
-                  </div>
+              <div className="space-y-2">
+                <Label>Título do Pop-up</Label>
+                <Input 
+                  value={values.title} 
+                  onChange={(e) => setConfigs({...configs, [intent]: {...values, title: e.target.value}})} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem de Recuperação</Label>
+                <Input 
+                  value={values.message} 
+                  onChange={(e) => setConfigs({...configs, [intent]: {...values, message: e.target.value}})} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Texto do Botão</Label>
+                <Input 
+                  value={values.button_text} 
+                  onChange={(e) => setConfigs({...configs, [intent]: {...values, button_text: e.target.value}})} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cor de Fundo</Label>
+                <div className="flex gap-2">
+                  <Input type="color" value={values.color} 
+                         onChange={(e) => setConfigs({...configs, [intent]: {...values, color: e.target.value}})} 
+                         className="w-12 p-1 h-10" />
+                  <Input value={values.color} 
+                         onChange={(e) => setConfigs({...configs, [intent]: {...values, color: e.target.value}})} />
                 </div>
               </div>
               <Button 
                 className="w-full" 
                 onClick={() => saveSetting(intent)} 
-                disabled={loading}
+                disabled={saving}
               >
-                {loading ? "Salvando..." : "Salvar Configuração"}
+                {saving ? "Salvando..." : "Salvar Configuração"}
               </Button>
             </CardContent>
           </Card>
