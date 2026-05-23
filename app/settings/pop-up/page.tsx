@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/utils/supabase/client' // Ajuste o path
+import { createClient } from '@/utils/supabase/client'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Save, Eye, Layout } from "lucide-react"
 import { toast } from "sonner"
@@ -13,19 +12,16 @@ import { toast } from "sonner"
 // --- COMPONENTE DE SIMULADOR (O que o cliente vê no site dele) ---
 function PopupPreview({ config }: { config: any }) {
   
-  // FUNÇÃO DE RASTREAMENTO DE CLIQUE
   async function handleButtonClick() {
     console.log("Simulando clique na intervenção...");
-    
-    // Aqui simulamos o que o SDK faria no site do cliente
     try {
       await fetch('/api/collect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          api_key: 'sa_live_test_123', // Em produção, isso viria da store.api_key
+          api_key: 'sa_live_test_123', 
           event_type: 'intervention_clicked',
-          payload: { intent: 'default' } // No simulador, marcamos como 'default'
+          payload: { intent: 'default' } 
         })
       });
       toast.success("Clique rastreado com sucesso! ✅");
@@ -36,28 +32,43 @@ function PopupPreview({ config }: { config: any }) {
 
   return (
     <div className="relative w-full h-full bg-slate-200 rounded-xl overflow-hidden border-4 border-slate-300 shadow-inner">
-      {/* ... resto do mock do site ... */}
-      
-      <div 
-        className="absolute bottom-8 right-8 w-80 p-6 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10 duration-500"
-        style={{ backgroundColor: config.primary_color, color: '#fff' }}
-      >
-        <h3 className="text-lg font-bold mb-2">{config.popup_title}</h3>
-        <p className="text-sm opacity-90 mb-4">{config.popup_text}</p>
-        
-        {/* BOTÃO AGORA TEM O ONCLICK */}
-        <Button 
-          onClick={handleButtonClick}
-          className="w-full" 
-          style={{ backgroundColor: '#fff', color: config.primary_color, fontWeight: 'bold' }}
-        >
-          {config.button_text}
-        </Button>
-      </div>
-    </div>
-  )
-}
+      {/* Mock do Site do Cliente */}
+      <div className="w-full h-full bg-white p-8">
+        <div className="flex justify-between items-center mb-8">
+          <div className="h-4 w-32 bg-slate-100 rounded"></div>
+          <div className="flex gap-2">
+            <div className="h-4 w-12 bg-slate-100 rounded"></div>
+            <div className="h-4 w-12 bg-slate-100 rounded"></div>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="h-8 w-3/4 bg-slate-100 rounded"></div>
+          <div className="h-32 w-full bg-slate-50 rounded-lg"></div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="h-20 bg-slate-50 rounded"></div>
+            <div className="h-20 bg-slate-50 rounded"></div>
+            <div className="h-20 bg-slate-50 rounded"></div>
+          </div>
+        </div>
 
+        {/* O POP-UP REAL */}
+        <div 
+          className="absolute bottom-8 right-8 w-80 p-6 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10 duration-500"
+          style={{ backgroundColor: config.primary_color, color: '#fff' }}
+        >
+          <h3 className="text-lg font-bold mb-2">{config.popup_title}</h3>
+          <p className="text-sm opacity-90 mb-4">{config.popup_text}</p>
+          <Button 
+            onClick={handleButtonClick}
+            className="w-full" 
+            style={{ backgroundColor: '#fff', color: config.primary_color, fontWeight: 'bold' }}
+          >
+            {config.button_text}
+          </Button>
+        </div>
+      </div>
+      
+      {/* Legenda do Simulador */}
       <div className="absolute top-4 left-4 bg-slate-800/50 text-white text-[10px] px-2 py-1 rounded uppercase font-bold">
         Simulador de Loja
       </div>
@@ -67,11 +78,10 @@ function PopupPreview({ config }: { config: any }) {
 
 // --- PÁGINA PRINCIPAL DO EDITOR ---
 export default function PopupEditorPage() {
-  const supabase = createClient() // Cliente do lado do cliente
+  const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
-  // Estado do Config (Default)
   const [config, setConfig] = useState({
     primary_color: '#6366f1',
     popup_title: 'Ei, não vá embora!',
@@ -82,7 +92,6 @@ export default function PopupEditorPage() {
 
   useEffect(() => {
     async function loadSettings() {
-      // Busca a loja do usuário logado
       const { data: { user } } = await supabase.auth.getUser()
       const { data: store } = await supabase.from('stores').select('id').eq('owner_id', user?.id).single()
       
@@ -122,7 +131,6 @@ export default function PopupEditorPage() {
 
   return (
     <div className="flex h-screen bg-slate-50">
-      {/* LADO ESQUERDO: CONTROLES */}
       <div className="w-1/3 h-full bg-white border-r border-slate-200 overflow-y-auto p-6">
         <div className="flex items-center gap-2 mb-6">
           <Layout className="text-primary" size={24} />
@@ -190,7 +198,6 @@ export default function PopupEditorPage() {
         </div>
       </div>
 
-      {/* LADO DIREITO: SIMULADOR */}
       <div className="w-2/3 h-full p-8 flex flex-col items-center justify-center">
         <div className="flex items-center gap-2 mb-4 text-slate-500">
           <Eye size={18} />
