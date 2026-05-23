@@ -20,14 +20,18 @@
         <br>
         <!-- Botão que o SDK monitora -->
         <button id="calculate-shipping">Calcular Frete</button>
-        <p style="margin-top: 20px; color: #666; font-size: 12px;">Dica: Clique no botão e depois tire o mouse da aba!</p>
+        <p style="margin-top: 20px; color: #666; font-size: 12px;">Dica: Clique no botão e aguarde a IA analisar!</p>
     </div>
 
     <script>
-        // Inicializa o SDK com os seus dados REAIS do banco
         window.onload = () => {
             console.log("🚀 Iniciando Sense.Ai...");
-            const sense = new SenseAi('3f5e37a5-dedc-4039-acdf-b3652787d2e6', 'sk_test_123');
+            
+            // CORREÇÃO AQUI: Usando a API KEY REAL do banco ('sa_live_test_123')
+            // Removi o segundo parâmetro pois a maioria dos SDKs usa apenas a Key
+            const sense = new SenseAi('sa_live_test_123');
+            
+            console.log("Sense.Ai inicializado com a chave correta.");
         };
     </script>
 </body>

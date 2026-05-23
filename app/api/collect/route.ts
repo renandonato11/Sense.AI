@@ -94,7 +94,13 @@ export async function POST(req: Request) {
     })
 
     // 3. Definição da Intenção
-    const intent = event_type; 
+    // Traduzindo os eventos do SDK para as chaves do Dashboard
+let intent = event_type;
+
+if (event_type === 'shipping_doubt') intent = 'shipping';
+if (event_type === 'price_hesitation') intent = 'price';
+if (event_type === 'cart_abandonment') intent = 'distraction';
+
 
     // 4. Busca de Intervenção Personalizada
     const { data: customIntervention } = await supabase
