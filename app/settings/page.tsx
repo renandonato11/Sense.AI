@@ -11,7 +11,7 @@ export default function SettingsPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [storeId, setStoreId] = useState<string | null>(null) // ID agora é dinâmico
+  const [storeId, setStoreId] = useState<string | null>(null)
   
   const [configs, setConfigs] = useState<{ [key: string]: any }>({
     shipping: { title: '', message: '', button_text: '', color: '#2563eb' },
@@ -23,11 +23,9 @@ export default function SettingsPage() {
   useEffect(() => {
     async function initializeStore() {
       try {
-        // 1. Identifica o usuário logado
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError || !user) throw new Error("Usuário não autenticado")
 
-        // 2. Busca a loja vinculada a este usuário (Coração do Multi-tenant)
         const { data: store, error: storeError } = await supabase
           .from('stores')
           .select('id')
@@ -38,7 +36,6 @@ export default function SettingsPage() {
         
         setStoreId(store.id)
 
-        // 3. Carrega as configurações desta loja específica
         const { data: savedConfigs } = await supabase
           .from('interventions')
           .select('*')
@@ -76,7 +73,7 @@ export default function SettingsPage() {
       .from('interventions')
       .upsert(
         { 
-          store_id: storeId, // Agora usa o ID dinâmico do usuário
+          store_id: storeId,
           intent: intent, 
           title: config.title, 
           message: config.message, 
@@ -95,6 +92,63 @@ export default function SettingsPage() {
   if (loading) return <div className="p-8 text-center">Autenticando e carregando loja...</div>
 
   return (
-    // ... (o restante do JSX permanece igual ao código anterior)
+    <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold">Configurações de Intervenção</h1>
+        <p className="text-slate-500">Personalize o que seus clientes verão no momento da hesitação.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+        {Object.entries(configs).map(([intent, values]) => (
+          <Card key={intent}>
+            <CardHeader>
+              <CardTitle className="text-lg font-mono text-blue-600 uppercase">
+                {intent}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Título do Pop-up</Label>
+                <Input 
+                  value={values.title} 
+                  onChange={(e) => setConfigs({...configs, [intent]: {...values, title: e.target.value}})} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem de Recuperação</Label>
+                <Input 
+                  value={values.message} 
+                  onChange={(e) => setConfigs({...configs, [intent]: {...values, message: e.target.value}})} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Texto do Botão</Label>
+                <Input 
+                  value={values.button_text} 
+                  onChange={(e) => setConfigs({...configs, [intent]: {...values, button_text: e.target.value}})} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cor de Fundo</Label>
+                <div className="flex gap-2">
+                  <Input type="color" value={values.color} 
+                         onChange={(e) => setConfigs({...configs, [intent]: {...values, color: e.target.value}})} 
+                         className="w-12 p-1 h-10" />
+                  <Input value={values.color} 
+                         onChange={(e) => setConfigs({...configs, [intent]: {...values, color: e.target.value}})} />
+                </div>
+              </div>
+              <Button 
+                className="w-full" 
+                onClick={() => saveSetting(intent)} 
+                disabled={saving}
+              >
+                {saving ? "Salvando..." : "Salvar Configuração"}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
   )
 }
