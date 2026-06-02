@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Button } from '@/components/ui/button' // IMPORT CORRIGIDO AQUI
 import { DollarSign, TrendingUp, ShoppingCart, Award, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -30,7 +31,7 @@ export default function RevenuePage() {
         
         if (storeError || !store) throw new Error("Nenhuma loja vinculada a este usuário.")
 
-        // 3. Busca vendas e métricas em paralelo para ser mais rápido
+        // 3. Busca vendas e métricas em paralelo
         const [salesRes, metricsRes] = await Promise.all([
           supabase.from('recovered_sales').select('*').eq('store_id', store.id).order('created_at', { ascending: false }),
           supabase.from('intervention_metrics').select('*').eq('store_id', store.id)
@@ -69,7 +70,7 @@ export default function RevenuePage() {
       <AlertCircle size={48} className="text-red-500 mb-4" />
       <h1 className="text-2xl font-bold">Erro ao carregar dados</h1>
       <p className="text-slate-500 mb-6">{error}</p>
-      <Button onClick={() => window.location.reload()} className="bg-blue-600">Tentar Novamente</Button>
+      <Button onClick={() => window.location.reload()} className="bg-blue-600 text-white">Tentar Novamente</Button>
     </div>
   )
 
