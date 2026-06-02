@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Obrigado pela Compra! - Loja Teste</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f0fff4; color: #2d3748; text-align: center; }
+        .container { background: white; padding: 3rem; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h1 { color: #2f855a; font-size: 2.5rem; margin-bottom: 1rem; }
+        .price { font-size: 1.5rem; font-weight: bold; color: #276749; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>✅ Compra Finalizada!</h1>
+        <p>Seu pedido foi recebido com sucesso.</p>
+        <p class="price">Valor do pedido: R$ 250,00</p>
+        <p>Você receberá um e-mail de confirmação em breve.</p>
+    </div>
+
+    <!-- IMPORTANTE: O SDK deve estar aqui para detectar a venda -->
+    <script src="https://sense-ai-xb5a.vercel.app/sdk/index.js"></script>
+    <script>
+        window.onload = () => {
+            console.log("🚀 Sense.Ai detectando conversão...");
+            // Inicializa o SDK com a sua API Key
+            new SenseAi('sa_live_test_123');
+        };
+    </script>
+</body>
+</html>

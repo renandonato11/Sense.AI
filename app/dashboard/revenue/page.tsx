@@ -4,52 +4,74 @@ import React, { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { DollarSign, TrendingUp, ShoppingCart, Award } from 'lucide-react'
+import { DollarSign, TrendingUp, ShoppingCart, Award, AlertCircle } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function RevenuePage() {
   const supabase = createClient()
   const [sales, setSales] = useState<any[]>([])
   const [metrics, setMetrics] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadFinancials() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      try {
+        // 1. Busca usuário logado
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) throw new Error("Usuário não autenticado. Por favor, faça login novamente.")
 
-      const { data: store } = await supabase.from('stores').select('id').eq('owner_id', user.id).single()
-      
-      if (store) {
-        // 1. Busca todas as vendas recuperadas
-        const { data: salesData } = await supabase
-          .from('recovered_sales')
-          .select('*')
-          .eq('store_id', store.id)
-          .order('created_at', { ascending: false })
-
-        // 2. Busca métricas de impressões/cliques para calcular a taxa
-        const { data: metricsData } = await supabase
-          .from('intervention_metrics')
-          .select('*')
-          .eq('store_id', store.id)
+        // 2. Busca loja vinculada
+        const { data: store, error: storeError } = await supabase
+          .from('stores')
+          .select('id')
+          .eq('owner_id', user.id)
+          .single()
         
-        setSales(salesData || [])
-        setMetrics(metricsData || [])
+        if (storeError || !store) throw new Error("Nenhuma loja vinculada a este usuário.")
+
+        // 3. Busca vendas e métricas em paralelo para ser mais rápido
+        const [salesRes, metricsRes] = await Promise.all([
+          supabase.from('recovered_sales').select('*').eq('store_id', store.id).order('created_at', { ascending: false }),
+          supabase.from('intervention_metrics').select('*').eq('store_id', store.id)
+        ])
+
+        if (salesRes.error) throw new Error("Erro ao carregar vendas: " + salesRes.error.message)
+        if (metricsRes.error) throw new Error("Erro ao carregar métricas: " + metricsRes.error.message)
+
+        setSales(salesRes.data || [])
+        setMetrics(metricsRes.data || [])
+      } catch (err: any) {
+        console.error("Erro Financeiro:", err.message)
+        setError(err.message)
+        toast.error(err.message)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     loadFinancials()
   }, [])
 
-  // Cálculo de Receita Total
   const totalRecovered = sales.reduce((acc, sale) => acc + (sale.sale_value || 0), 0)
-
-  // Cálculo de Taxa de Conversão Geral
   const totalClicks = metrics.reduce((acc, m) => acc + (m.clicks || 0), 0)
   const totalImpressions = metrics.reduce((acc, m) => acc + (m.impressions || 0), 0)
   const conversionRate = totalImpressions > 0 ? ((sales.length / totalImpressions) * 100).toFixed(2) : '0'
 
-  if (loading) return <div className="p-8 text-center">Carregando relatório financeiro...</div>
+  if (loading) return (
+    <div className="p-8 flex flex-col items-center justify-center min-h-screen space-y-4">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+      <p className="text-slate-500 animate-pulse">Sincronizando dados financeiros...</p>
+    </div>
+  )
+
+  if (error) return (
+    <div className="p-8 flex flex-col items-center justify-center min-h-screen text-center">
+      <AlertCircle size={48} className="text-red-500 mb-4" />
+      <h1 className="text-2xl font-bold">Erro ao carregar dados</h1>
+      <p className="text-slate-500 mb-6">{error}</p>
+      <Button onClick={() => window.location.reload()} className="bg-blue-600">Tentar Novamente</Button>
+    </div>
+  )
 
   return (
     <div className="p-8 space-y-8 max-w-6xl mx-auto">
@@ -66,7 +88,6 @@ export default function RevenuePage() {
         </div>
       </div>
 
-      {/* KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="border-l-4 border-l-green-500 bg-green-50/30">
           <CardContent className="pt-6">
@@ -105,7 +126,6 @@ export default function RevenuePage() {
         </Card>
       </div>
 
-      {/* TABELA DE VENDAS RECENTES */}
       <Card>
         <CardHeader>
           <CardTitle>Histórico de Vendas Recuperadas</CardTitle>
