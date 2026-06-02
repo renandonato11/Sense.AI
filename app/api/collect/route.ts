@@ -85,6 +85,36 @@ export async function POST(req: Request) {
       }, { status: 200, headers: corsHeaders })
     }
     // =========================================================================
+    // =========================================================================
+    // LÓGICA de COMPRA FINALIZADA (Atribuição de Receita)
+    // =========================================================================
+    if (event_type === 'purchase_completed') {
+      const { intent, value } = payload;
+
+      if (!intent) {
+        return NextResponse.json({ success: true, message: 'Venda registrada, mas sem atribuição de IA' }, { status: 200, headers: corsHeaders });
+      }
+
+      // Registra a venda vinculada à intenção que recuperou o cliente
+      const { error: saleError } = await supabase
+        .from('recovered_sales')
+        .insert({ 
+          store_id: store.id, 
+          intent: intent, 
+          sale_value: value || 0 
+        });
+
+      if (saleError) {
+        console.error("Erro ao registrar venda:", saleError);
+        return NextResponse.json({ error: "Erro ao registrar venda" }, { status: 500, headers: corsHeaders });
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Venda recuperada registrada com sucesso!' 
+      }, { status: 200, headers: corsHeaders })
+    }
+    // =========================================================================
 
     // 2. Log do evento no histórico (Sinais de comportamento)
     await supabase.from('events').insert({ 

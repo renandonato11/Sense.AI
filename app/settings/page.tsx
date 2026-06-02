@@ -11,9 +11,7 @@ export default function SettingsPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  
-  // ID da sua loja forçado para eliminar o erro "Loja não encontrada"
-  const forceStoreId = '435b09cb-fcef-4864-b6b8-f28f2a0ec10c';
+  const [storeId, setStoreId] = useState<string | null>(null) // Agora o ID é dinâmico
 
   // Sincronizado com as chaves da API
   const [configs, setConfigs] = useState<{ [key: string]: any }>({
@@ -25,30 +23,57 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function loadSettings() {
-      // Buscamos as intervenções usando o ID forçado
-      const { data: savedConfigs } = await supabase
-        .from('interventions')
-        .select('*')
-        .eq('store_id', forceStoreId)
+      try {
+        // 1. Identifica quem está logado
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) throw new Error("Usuário não autenticado")
 
-      if (savedConfigs) {
-        const newConfigs = { ...configs }
-        savedConfigs.forEach(item => {
-          newConfigs[item.intent] = {
-            title: item.title,
-            message: item.message,
-            button_text: item.button_text,
-            color: item.color_hex
-          }
-        })
-        setConfigs(newConfigs)
+        // 2. Busca a loja que pertence a esse usuário
+        const { data: store, error: storeError } = await supabase
+          .from('stores')
+          .select('id')
+          .eq('owner_id', user.id)
+          .single()
+
+        if (storeError || !store) throw new Error("Loja não vinculada a este usuário")
+        
+        // Salva o ID da loja encontrada para usar no salvamento
+        setStoreId(store.id)
+
+        // 3. Busca as intervenções desta loja específica
+        const { data: savedConfigs } = await supabase
+          .from('interventions')
+          .select('*')
+          .eq('store_id', store.id)
+
+        if (savedConfigs) {
+          const newConfigs = { ...configs }
+          savedConfigs.forEach(item => {
+            newConfigs[item.intent] = {
+              title: item.title,
+              message: item.message,
+              button_text: item.button_text,
+              color: item.color_hex
+            }
+          })
+          setConfigs(newConfigs)
+        }
+      } catch (err: any) {
+        console.error("Erro ao carregar:", err.message)
+        toast.error(err.message)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     loadSettings()
   }, [])
 
   const saveSetting = async (intent: string) => {
+    if (!storeId) {
+      toast.error("Erro: Loja não identificada. Faça login novamente.")
+      return
+    }
+
     setSaving(true)
     const config = configs[intent]
     
@@ -56,7 +81,7 @@ export default function SettingsPage() {
       .from('interventions')
       .upsert(
         { 
-          store_id: forceStoreId,
+          store_id: storeId, // Agora usa o ID dinâmico do usuário logado
           intent: intent, 
           title: config.title, 
           message: config.message, 
@@ -75,16 +100,16 @@ export default function SettingsPage() {
     }
   }
 
-  if (loading) return <div className="p-8 text-center">Carregando configurações...</div>
+  if (loading) return <div className="p-8 text-center">Autenticando e carregando configurações...</div>
 
   return (
     <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
-      <div>
+      <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold">Configurações de Intervenção</h1>
         <p className="text-slate-500">Personalize o que seus clientes verão no momento da hesitação.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
         {Object.entries(configs).map(([intent, values]) => (
           <Card key={intent}>
             <CardHeader>
