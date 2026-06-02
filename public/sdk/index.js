@@ -6,15 +6,14 @@ class SenseAi {
   }
 
   init() {
-    console.log("🚀 Sense.Ai Elite SDK Loaded");
+    console.log("🚀 Sense.Ai Elite SDK Loaded & Active");
     this.trackConversion();
     this.setupBehavioralTracking();
   }
 
-  // Envia eventos para a API
   async track(eventType, payload = {}) {
     try {
-      await fetch(this.apiUrl, {
+      const response = await fetch(this.apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -23,39 +22,93 @@ class SenseAi {
           payload: payload
         })
       });
+
+      const data = await response.json();
+
+      // SE A API RETORNAR UMA INTERVENÇÃO, MOSTRAMOS O POP-UP NA TELA
+      if (data.intervention) {
+        this.renderPopup(data.intervention, eventType);
+      }
     } catch (e) {
       console.error("Sense.Ai Error:", e);
     }
   }
 
-  // Lógica de Atribuição de Vendas
+  renderPopup(config, intent) {
+    // Remove pop-up existente para não duplicar
+    const existing = document.getElementById('sense-ai-popup');
+    if (existing) existing.remove();
+
+    // Cria o elemento do Pop-up
+    const popup = document.createElement('div');
+    popup.id = 'sense-ai-popup';
+    
+    // Estilização Profissional (Injetada via JS)
+    Object.assign(popup.style, {
+      position: 'fixed',
+      bottom: '30px',
+      right: '30px',
+      width: '320px',
+      padding: '24px',
+      borderRadius: '20px',
+      backgroundColor: config.color || '#2563eb',
+      color: '#fff',
+      boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+      zIndex: '999999',
+      fontFamily: 'sans-serif',
+      animation: 'slideIn 0.5s ease-out'
+    });
+
+    // HTML Interno
+    popup.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
+        <h3 style="margin:0; font-size:18px; font-weight:bold; line-height:1.2;">${config.title}</h3>
+        <button id="sense-ai-close" style="background:none; border:none; color:#fff; cursor:pointer; font-size:20px; line-height:1;">&times;</button>
+      </div>
+      <p style="margin:0 0 20px 0; font-size:14px; opacity:0.9; line-height:1.5;">${config.message}</p>
+      <button id="sense-ai-btn" style="width:100%; padding:12px; border-radius:10px; border:none; background:#fff; color:${config.color || '#2563eb'}; font-weight:bold; cursor:pointer; transition:0.2s;">
+        ${config.buttonText}
+      </button>
+    `;
+
+    document.body.appendChild(popup);
+
+    // Ação de Fechar
+    document.getElementById('sense-ai-close').onclick = () => popup.remove();
+
+    // Ação de Clique no Botão (Rastreamento de Conversão)
+    document.getElementById('sense-ai-btn').onclick = () => {
+      localStorage.setItem('sense_ai_recovered_intent', intent);
+      this.track('intervention_clicked', { intent: intent });
+      popup.remove();
+      toast_success(); // Simples aviso visual
+    };
+
+    // Adiciona animação CSS ao body
+    const style = document.createElement('style');
+    style.innerHTML = `@keyframes slideIn { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`;
+    document.head.appendChild(style);
+  }
+
+  toast_success() {
+    console.log("✅ Conversão registrada no localStorage!");
+  }
+
   trackConversion() {
-    // 1. Verifica se a URL atual é uma página de sucesso/obrigado
     const path = window.location.pathname.toLowerCase();
     const successPages = ['/thank-you', '/obrigado', '/sucesso', '/checkout/success'];
-    
-    const isSuccessPage = successPages.some(page => path.includes(page));
-
-    if (isSuccessPage) {
-      // 2. Verifica se existe um "carimbo" de recuperação no localStorage
+    if (successPages.some(page => path.includes(page))) {
       const recoveredIntent = localStorage.getItem('sense_ai_recovered_intent');
-      
       if (recoveredIntent) {
-        console.log("💰 Venda recuperada detectada!");
-        
-        // 3. Dispara o evento de compra para a API
         this.track('purchase_completed', {
           intent: recoveredIntent,
-          value: this.extractOrderValue() // Tenta pegar o valor da página
+          value: this.extractOrderValue()
         });
-        
-        // Limpa o carimbo para não contar a mesma venda duas vezes
         localStorage.removeItem('sense_ai_recovered_intent');
       }
     }
   }
 
-  // Tenta capturar o valor da venda na página (simplificado)
   extractOrderValue() {
     const bodyText = document.body.innerText;
     const match = bodyText.match(/R\$\s?(\d+,\d{2})/);
@@ -63,27 +116,18 @@ class SenseAi {
   }
 
   setupBehavioralTracking() {
-    // Exemplo: Monitora cliques em botões de frete
     document.addEventListener('click', (e) => {
       if (e.target.id === 'calculate-shipping' || e.target.innerText.includes('Frete')) {
         this.track('shipping', { timestamp: new Date().toISOString() });
       }
     });
 
-    // Monitora saída do mouse da aba (Exit Intent)
     document.addEventListener('mouseleave', (e) => {
       if (e.clientY < 0) {
         this.track('distraction', { timestamp: new Date().toISOString() });
       }
     });
   }
-
-  // Método para o pop-up salvar que o usuário clicou
-  recordClick(intent) {
-    localStorage.setItem('sense_ai_recovered_intent', intent);
-    this.track('intervention_clicked', { intent: intent });
-  }
 }
 
-// Exporta para o window para ser usado no HTML
 window.SenseAi = SenseAi;
