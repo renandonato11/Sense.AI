@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { DollarSign, TrendingUp, ShoppingCart, Award, AlertCircle } from 'lucide-//react'
+import { DollarSign, TrendingUp, ShoppingCart, Award, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function RevenuePage() {
@@ -15,15 +15,13 @@ export default function RevenuePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ID do Founder (Sua Loja) - Caso a autenticação oscile, o sistema não trava
   const FOUNDER_STORE_ID = '435b09cb-fcef-4864-b6b8-f28f2a0ec10c';
 
   useEffect(() => {
     async function loadFinancials() {
       try {
-        // 1. Tentativa de autenticação dinâmica
         const { data: { user } } = await supabase.auth.getUser()
-        let targetStoreId = FOUNDER_STORE_ID; // Fallback padrão
+        let targetStoreId = FOUNDER_STORE_ID;
 
         if (user) {
           const { data: store } = await supabase
@@ -35,7 +33,6 @@ export default function RevenuePage() {
           if (store) targetStoreId = store.id;
         }
 
-        // 2. Busca de dados usando o ID identificado (ou o do Founder)
         const [salesRes, metricsRes] = await Promise.all([
           supabase.from('recovered_sales').select('*').eq('store_id', targetStoreId).order('created_at', { ascending: false }),
           supabase.from('intervention_metrics').select('*').eq('store_id', targetStoreId)
