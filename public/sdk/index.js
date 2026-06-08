@@ -25,7 +25,6 @@ class SenseAi {
 
       const data = await response.json();
 
-      // SE A API RETORNAR UMA INTERVENÇÃO, MOSTRAMOS O POP-UP NA TELA
       if (data.intervention) {
         this.renderPopup(data.intervention, eventType);
       }
@@ -35,15 +34,12 @@ class SenseAi {
   }
 
   renderPopup(config, intent) {
-    // Remove pop-up existente para não duplicar
     const existing = document.getElementById('sense-ai-popup');
     if (existing) existing.remove();
 
-    // Cria o elemento do Pop-up
     const popup = document.createElement('div');
     popup.id = 'sense-ai-popup';
     
-    // Estilização Profissional (Injetada via JS)
     Object.assign(popup.style, {
       position: 'fixed',
       bottom: '30px',
@@ -59,7 +55,6 @@ class SenseAi {
       animation: 'slideIn 0.5s ease-out'
     });
 
-    // HTML Interno
     popup.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
         <h3 style="margin:0; font-size:18px; font-weight:bold; line-height:1.2;">${config.title}</h3>
@@ -73,25 +68,19 @@ class SenseAi {
 
     document.body.appendChild(popup);
 
-    // Ação de Fechar
     document.getElementById('sense-ai-close').onclick = () => popup.remove();
 
-    // Ação de Clique no Botão (Rastreamento de Conversão)
+    // CORREÇÃO AQUI: Mudamos a chamada da função e removemos o toast_success problemático
     document.getElementById('sense-ai-btn').onclick = () => {
       localStorage.setItem('sense_ai_recovered_intent', intent);
       this.track('intervention_clicked', { intent: intent });
       popup.remove();
-      toast_success(); // Simples aviso visual
+      console.log("✅ Sense.Ai: Clique registrado e salvo no localStorage!");
     };
 
-    // Adiciona animação CSS ao body
     const style = document.createElement('style');
     style.innerHTML = `@keyframes slideIn { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`;
     document.head.appendChild(style);
-  }
-
-  toast_success() {
-    console.log("✅ Conversão registrada no localStorage!");
   }
 
   trackConversion() {
