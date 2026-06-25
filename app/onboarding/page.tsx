@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createStore } from '../actions/store' // Ajuste o path
+import { createStore } from '../actions/store' // Ajuste o path se necessário
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { CheckCircle2, Copy, Rocket } from "lucide-react"
-import { toast } from "sonner" // Ou seu sistema de toast
+import { toast } from "sonner"
 
 export default function OnboardingPage() {
   const [loading, setLoading] = useState(false)
@@ -26,10 +26,12 @@ export default function OnboardingPage() {
 
     try {
       const result = await createStore(storeData)
+      // Garante que pegamos a api_key retornada pela action do servidor
       setApiKey(result.store.api_key)
       setStep('success')
       toast.success("Loja configurada com sucesso!")
     } catch (error) {
+      console.error("Erro no onboarding:", error)
       toast.error("Erro ao configurar loja. Verifique os dados.")
     } finally {
       setLoading(false)
@@ -40,6 +42,12 @@ export default function OnboardingPage() {
     navigator.clipboard.writeText(apiKey)
     toast.success("API Key copiada!")
   }
+
+  // Gerador do snippet de instalação correto para o seu SDK da Vercel
+  const installationSnippet = `<script src="https://sense-ai-xb5a.vercel.app/sdk/index.js"></script>
+<script>
+  new SenseAi('${apiKey}');
+</script>`;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
@@ -105,18 +113,15 @@ export default function OnboardingPage() {
             <div className="space-y-2">
               <Label>Snippet de Instalação</Label>
               <div className="relative group">
-                <pre className="p-4 bg-slate-900 text-slate-200 rounded-lg text-xs overflow-x-auto font-mono">
-                  {`<script 
-  src="https://cdn.sense.ai/sdk.js" 
-  data-api-key="${apiKey}" 
-  async></script>`}
+                <pre className="p-4 bg-slate-900 text-slate-200 rounded-lg text-xs overflow-x-auto font-mono whitespace-pre-wrap">
+                  {installationSnippet}
                 </pre>
                 <Button 
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" 
                   variant="secondary" 
                   size="sm" 
                   onClick={() => {
-                    navigator.clipboard.writeText(`<script src="https://cdn.sense.ai/sdk.js" data-api-key="${apiKey}" async></script>`);
+                    navigator.clipboard.writeText(installationSnippet);
                     toast.success("Snippet copiado!");
                   }}
                 >
