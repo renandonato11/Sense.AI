@@ -31,42 +31,68 @@ class SenseAi {
     }
   }
 
-  renderPopup(config, intent) {
+    renderPopup(config, intent) {
     const existing = document.getElementById('sense-ai-popup');
     if (existing) existing.remove();
 
     const popup = document.createElement('div');
     popup.id = 'sense-ai-popup';
     
+    // ESTILO PREMIUM: Design flutuante, sombras suaves e bordas arredondadas
     Object.assign(popup.style, {
-      position: 'fixed', bottom: '30px', right: '30px', width: '320px',
-      padding: '24px', borderRadius: '20px', backgroundColor: config.color || '#2563eb',
-      color: '#fff', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
-      zIndex: '999999', fontFamily: 'sans-serif', animation: 'slideIn 0.5s ease-out'
+      position: 'fixed',
+      bottom: '30px',
+      right: '30px',
+      width: '350px',
+      padding: '0',
+      borderRadius: '24px',
+      backgroundColor: '#fff', // Fundo branco para contraste
+      color: '#1a1a1a',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+      zIndex: '999999',
+      fontFamily: '"Inter", "Segoe UI", Roboto, sans-serif',
+      overflow: 'hidden',
+      animation: 'senseAiSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+      border: `1px solid ${config.color || '#e2e8f0'}`
     });
 
+    // Estrutura interna com "Header" colorido
     popup.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
-        <h3 style="margin:0; font-size:18px; font-weight:bold; line-height:1.2;">${config.title}</h3>
-        <button id="sense-ai-close" style="background:none; border:none; color:#fff; cursor:pointer; font-size:20px; line-height:1;">&times;</button>
+      <div style="background-color: ${config.color || '#2563eb'}; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; color: #fff;">
+        <h3 style="margin:0; font-size:16px; font-weight:bold; letter-spacing: -0.5px;">${config.title}</h3>
+        <button id="sense-ai-close" style="background:none; border:none; color:rgba(255,255,255,0.7); cursor:pointer; font-size:20px; line-height:1;">&times;</button>
       </div>
-      <p style="margin:0 0 20px 0; font-size:14px; opacity:0.9; line-height:1.5;">${config.message}</p>
-      <button id="sense-ai-btn" style="width:100%; padding:12px; border-radius:10px; border:none; background:#fff; color:${config.color || '#2563eb'}; font-weight:bold; cursor:pointer; transition:0.2s;">
-        ${config.buttonText}
-      </button>
+      <div style="padding: 24px; text-align: center;">
+        <p style="margin:0 0 24px 0; font-size:15px; color: #4a5568; line-height:1.6;">${config.message}</p>
+        <button id="sense-ai-btn" style="width:100%; padding:14px; border-radius:12px; border:none; background:${config.color || '#2563eb'}; color:#fff; font-weight:bold; cursor:pointer; transition:all 0.2s; font-size:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          ${config.buttonText}
+        </button>
+      </div>
     `;
 
     document.body.appendChild(popup);
+
+    // Efeito de Hover no botão
+    const btn = document.getElementById('sense-ai-btn');
+    btn.onmouseover = () => btn.style.transform = 'scale(1.02)';
+    btn.onmouseout = () => btn.style.transform = 'scale(1)';
+
     document.getElementById('sense-ai-close').onclick = () => popup.remove();
+
     document.getElementById('sense-ai-btn').onclick = () => {
       localStorage.setItem('sense_ai_recovered_intent', intent);
       this.track('intervention_clicked', { intent: intent });
       popup.remove();
-      console.log("✅ Sense.Ai: Clique registrado!");
     };
 
+    // Animação de entrada suave e profissional
     const style = document.createElement('style');
-    style.innerHTML = `@keyframes slideIn { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`;
+    style.innerHTML = `
+      @keyframes senseAiSlideIn { 
+        from { transform: translateY(100px) scale(0.9); opacity: 0; } 
+        to { transform: translateY(0) scale(1); opacity: 1; } 
+      }
+    `;
     document.head.appendChild(style);
   }
 
