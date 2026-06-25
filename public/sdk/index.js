@@ -22,9 +22,7 @@ class SenseAi {
           payload: payload
         })
       });
-
       const data = await response.json();
-
       if (data.intervention) {
         this.renderPopup(data.intervention, eventType);
       }
@@ -41,18 +39,10 @@ class SenseAi {
     popup.id = 'sense-ai-popup';
     
     Object.assign(popup.style, {
-      position: 'fixed',
-      bottom: '30px',
-      right: '30px',
-      width: '320px',
-      padding: '24px',
-      borderRadius: '20px',
-      backgroundColor: config.color || '#2563eb',
-      color: '#fff',
-      boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
-      zIndex: '999999',
-      fontFamily: 'sans-serif',
-      animation: 'slideIn 0.5s ease-out'
+      position: 'fixed', bottom: '30px', right: '30px', width: '320px',
+      padding: '24px', borderRadius: '20px', backgroundColor: config.color || '#2563eb',
+      color: '#fff', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+      zIndex: '999999', fontFamily: 'sans-serif', animation: 'slideIn 0.5s ease-out'
     });
 
     popup.innerHTML = `
@@ -67,15 +57,12 @@ class SenseAi {
     `;
 
     document.body.appendChild(popup);
-
     document.getElementById('sense-ai-close').onclick = () => popup.remove();
-
-    // CORREÇÃO AQUI: Mudamos a chamada da função e removemos o toast_success problemático
     document.getElementById('sense-ai-btn').onclick = () => {
       localStorage.setItem('sense_ai_recovered_intent', intent);
       this.track('intervention_clicked', { intent: intent });
       popup.remove();
-      console.log("✅ Sense.Ai: Clique registrado e salvo no localStorage!");
+      console.log("✅ Sense.Ai: Clique registrado!");
     };
 
     const style = document.createElement('style');
@@ -84,16 +71,23 @@ class SenseAi {
   }
 
   trackConversion() {
-    const path = window.location.pathname.toLowerCase();
-    const successPages = ['/thank-you', '/obrigado', '/sucesso', '/checkout/success'];
-    if (successPages.some(page => path.includes(page))) {
+    // CORREÇÃO AQUI: Agora buscamos a palavra em qualquer parte da URL (Local ou Online)
+    const currentUrl = window.location.href.toLowerCase();
+    const successKeywords = ['thank-you', 'obrigado', 'sucesso', 'checkout/success'];
+    
+    const isSuccessPage = successKeywords.some(keyword => currentUrl.includes(keyword));
+
+    if (isSuccessPage) {
       const recoveredIntent = localStorage.getItem('sense_ai_recovered_intent');
       if (recoveredIntent) {
+        console.log("💰 Venda recuperada detectada! Enviando para API...");
         this.track('purchase_completed', {
           intent: recoveredIntent,
           value: this.extractOrderValue()
         });
         localStorage.removeItem('sense_ai_recovered_intent');
+      } else {
+        console.log("Página de sucesso detectada, mas nenhum carimbo de recuperação encontrado.");
       }
     }
   }
@@ -110,7 +104,6 @@ class SenseAi {
         this.track('shipping', { timestamp: new Date().toISOString() });
       }
     });
-
     document.addEventListener('mouseleave', (e) => {
       if (e.clientY < 0) {
         this.track('distraction', { timestamp: new Date().toISOString() });
