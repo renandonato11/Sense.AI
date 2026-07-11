@@ -58,15 +58,12 @@ export default function RevenuePage() {
     loadFinancials()
   }, [])
 
-  // --- LÓGICA de PROCESSAMENTO de DADOS PARA O GRÁFICO ---
   const processChartData = () => {
     const daysMap: Record<string, number> = {};
-    
     sales.forEach(sale => {
       const date = new Date(sale.created_at).toLocaleDateString('pt-BR');
-      daysMap[date] = (daysMap[date] || 0) + sale.sale_//value || 0;
+      daysMap[date] = (daysMap[date] || 0) + (sale.sale_value || 0);
     });
-
     return Object.entries(daysMap).map(([date, value]) => ({
       date,
       revenue: value
@@ -101,7 +98,7 @@ export default function RevenuePage() {
             <DollarSign className="text-green-500" />
             Centro de Receita
           </h1>
-          <p className="text-gray-500">Acompanhe o lucro real gerado pela Inteligência do Sense.Ai</p>
+          <p className="text-gray-500">Acompanhe o lucro real gerCado pela Inteligência do Sense.Ai</p>
         </div>
         <div className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-bold animate-pulse flex items-center gap-2">
           <TrendingUp size={16} />
@@ -109,7 +106,6 @@ export default function RevenuePage() {
         </div>
       </div>
 
-      {/* KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="border-l-4 border-l-green-500 bg-white shadow-sm">
           <CardContent className="pt-6">
@@ -118,7 +114,7 @@ export default function RevenuePage() {
                 <p className="text-sm text-gray-500 font-medium">Receita Total Recuperada</p>
                 <p className="text-3xl font-black text-slate-900">R$ {totalRecovered.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
               </div>
-              <div className="p-3 bg-green-100 text-green-600 rounded-2xl"><DollarSign size={24}/></div>
+              <div className="p-3 bg-green-100 text-green-600 rounded-2xl"><DollarSign size={24} /></div>
             </div>
           </CardContent>
         </Card>
@@ -130,7 +126,7 @@ export default function RevenuePage() {
                 <p className="text-sm text-gray-500 font-medium">Vendas Recuperadas</p>
                 <p className="text-3xl font-black text-slate-900">{sales.length}</p>
               </div>
-              <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><ShoppingCart size={24}/</div>
+              <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><ShoppingCart size={24} /></div>
             </div>
           </CardContent>
         </Card>
@@ -142,20 +138,19 @@ export default function RevenuePage() {
                 <p className="text-sm text-gray-500 font-medium">Taxa de Conversão</p>
                 <p className="text-3xl font-black text-slate-900">{conversionRate}%</p>
               </div>
-              <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl"><Award size={24}/</div>
+              <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl"><Award size={24} /></div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* GRÁFICO DE TENDÊNCIA */}
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-bold">Tendência de Receita Recuperada</CardTitle>
           <div className="text-green-600 flex items-center gap-1 text-sm font-bold">
             <ArrowUpRight size={16} />
             Crescimento Ativo
-          </div >
+          </div>
         </CardHeader>
         <CardContent className="h-[350px] w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -196,7 +191,6 @@ export default function RevenuePage() {
         </CardContent>
       </Card>
 
-      {/* TABELA DE VENDAS RECENTES */}
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg font-bold">Últimas Conversões</CardTitle>
@@ -206,21 +200,23 @@ export default function RevenuePage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Data</TableHead>
-                <TableHead>Intenção</TableHead>
-                <TableHead className="text-right">Valor Recuperado</TableHead>
+                <TableHead>Intenção Recuperada</TableHead>
+                <TableHead className="text-right">Valor Recuperado</TableH>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sales.map((sale) => (
                 <TableRow key={sale.id} className="hover:bg-slate-50 transition-colors">
-                  <TableCell className="text-gray-500">{new Date(sale.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell className="text-gray-500">
+                    {new Date(sale.created_at).toLocaleDateString('pt-BR')}
+                  </TableCell>
                   <TableCell>
                     <span className="uppercase font-bold text-[10px] px-2 py-1 bg-slate-100 rounded-full text-slate-600">
                       {sale.intent}
                     </span>
                   </TableCell>
                   <TableCell className="text-right font-bold text-green-600">
-                    R$ {sale.sale_value?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {sale.sale_//value?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </TableCell>
                 </TableRow>
               ))}
